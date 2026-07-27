@@ -1,0 +1,176 @@
+{
+  "patterns": [
+    {
+      "name": "email",
+      "type": "email",
+      "pattern": "[\\w.+-]+@[\\w-]+\\.[\\w.-]+",
+      "severity": "medium"
+    },
+    {
+      "name": "credit_card",
+      "type": "credit_card",
+      "pattern": "\\b\\d{4}[ -]?\\d{4}[ -]?\\d{4}[ -]?\\d{1,4}\\b",
+      "severity": "high",
+      "validator": "luhn"
+    },
+    {
+      "name": "credit_card_amex",
+      "type": "credit_card",
+      "pattern": "\\b3[47]\\d{2}[ -]?\\d{6}[ -]?\\d{5}\\b",
+      "severity": "high",
+      "validator": "luhn"
+    },
+    {
+      "name": "cvv_cvc",
+      "type": "cvv",
+      "pattern": "(?i)\\b(?:cvv|cvc|security[\\s_-]?code|code[\\s_-]?de[\\s_-]?s[eé]curit[eé])\\b[\\s:=-]{0,3}(\\d{3,4})(?!\\d)",
+      "severity": "high",
+      "capture_group": 1
+    },
+    {
+      "name": "date_of_birth",
+      "type": "date_of_birth",
+      "pattern": "\\b(?:0[1-9]|[12]\\d|3[01])[./](?:0[1-9]|1[0-2])[./](?:19|20)\\d{2}\\b",
+      "severity": "low"
+    },
+    {
+      "name": "ip_address",
+      "type": "ip_address",
+      "pattern": "\\b(?:(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)\\.){3}(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)\\b",
+      "severity": "high"
+    },
+    {
+      "name": "crypto_bitcoin",
+      "type": "crypto_wallet",
+      "pattern": "\\b[13][a-km-zA-HJ-NP-Z1-9]{25,34}\\b",
+      "severity": "high"
+    },
+    {
+      "name": "crypto_bitcoin_bech32",
+      "type": "crypto_wallet",
+      "pattern": "\\bbc1[a-z0-9]{25,90}\\b",
+      "severity": "high"
+    },
+    {
+      "name": "crypto_ethereum",
+      "type": "crypto_wallet",
+      "pattern": "\\b0x[a-fA-F0-9]{40}\\b",
+      "severity": "high"
+    },
+    {
+      "name": "openai_key",
+      "type": "api_key",
+      "pattern": "sk-[A-Za-z0-9]{20,}",
+      "severity": "high"
+    },
+    {
+      "name": "aws_key",
+      "type": "api_key",
+      "pattern": "AKIA[A-Z0-9]{16}",
+      "severity": "high"
+    },
+    {
+      "name": "github_token",
+      "type": "api_key",
+      "pattern": "\\b(?:ghp|gho|ghu|ghs|ghr)_[a-zA-Z0-9]{36}\\b",
+      "severity": "high"
+    },
+    {
+      "name": "jwt_token",
+      "type": "api_key",
+      "pattern": "\\beyJ[a-zA-Z0-9_-]+\\.[a-zA-Z0-9_-]+\\.[a-zA-Z0-9_-]{20,}\\b",
+      "severity": "high"
+    },
+    {
+      "name": "private_key_pem",
+      "type": "private_key",
+      "pattern": "(?s)-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----.*?-----END (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----",
+      "severity": "high"
+    },
+    {
+      "name": "database_connection_string",
+      "type": "connection_string",
+      "pattern": "\\b(?:postgresql|postgres|mysql|mongodb|redis)://[^\\s<]+",
+      "severity": "high"
+    },
+    {
+      "name": "credentials_in_url",
+      "type": "hardcoded_secret",
+      "pattern": "(?<=://)[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+",
+      "severity": "high"
+    },
+    {
+      "name": "env_style_secret",
+      "type": "hardcoded_secret",
+      "severity": "high",
+      "capture_group": 1,
+      "pattern": "(?i)\\b\\w*(?:secret|token|password|passwd|pwd|api[_-]?key|private[_-]?key|client[_-]?secret)\\w*\\s*[:=]\\s*[\\'\"]?(?!os\\.getenv)(?!os\\.environ)(?!process\\.env)(?!$\\{)(?=[^\\s\\'\"]{4,64}\\b)(?=[^\\s\\'\"]*[A-Za-z])(?=[^\\s\\'\"]*\\d)([^\\s\\'\"]{4,64})"
+    },
+    {
+      "name": "generic_secret",
+      "type": "api_key",
+      "pattern": "\\b[A-Za-z0-9]{32,}\\b",
+      "severity": "high",
+      "validator": "mixed_case"
+    },
+    {
+      "name": "phone_local",
+      "type": "phone",
+      "pattern": "\\b0[5-7](?:[\\s.-]?\\d{2}){4}\\b",
+      "severity": "medium"
+    },
+    {
+      "name": "phone_international",
+      "type": "phone",
+      "pattern": "\\+212[\\s.-]?[5-7](?:[\\s.-]?\\d{2}){4}",
+      "severity": "medium"
+    },
+    {
+      "name": "cin_number_labeled",
+      "type": "cin_number",
+      "severity": "high",
+      "capture_group": 1,
+      "pattern": "(?i:CIN|C\\.I\\.N|Carte Nationale d[\\x27\\u2019]Identit[eé]|N[o°]?\\s*CIN)[^A-Za-z0-9]{0,20}([A-Z]{1,2}\\d{4,6})"
+    },
+    {
+      "name": "civil_registry_number_labeled",
+      "type": "civil_registry_number",
+      "severity": "high",
+      "capture_group": 1,
+      "pattern": "(?i:[EÉ]tat[\\s_-]?[Cc]ivil)[^0-9]{0,20}(\\d{4}/\\d{2,6})"
+    },
+    {
+      "name": "rib_complet",
+      "type": "bank_account",
+      "pattern": "\\b\\d{3}\\s+\\d{3}\\s+\\d{10,16}\\s+\\d{2}\\b",
+      "severity": "high"
+    },
+    {
+      "name": "iban_morocco",
+      "type": "iban",
+      "pattern": "\\bMA\\d{2}(?:[ ]?\\d{4}){6}\\b",
+      "severity": "high",
+      "validator": "iban_checksum"
+    },
+    {
+      "name": "bic_swift_morocco",
+      "type": "bic_swift",
+      "pattern": "\\b[A-Z]{4}MA[A-Z0-9]{2}(?:[A-Z0-9]{3})?\\b",
+      "severity": "high"
+    },
+    {
+      "name": "labeled_name_fr",
+      "type": "name",
+      "severity": "low",
+      "capture_group": 1,
+      "pattern": "(?i:Nom|Pr[eé]nom|Nom et pr[eé]nom)\\s*[:\\-]\\s*([A-ZÀ-Ü][a-zà-ÿ]+(?:\\s[A-ZÀ-Ü][a-zà-ÿ]+){0,3})"
+    },
+    {
+      "name": "labeled_name_en",
+      "type": "name",
+      "severity": "low",
+      "capture_group": 1,
+      "pattern": "(?i:Name|Full Name|First Name|Last Name)\\s*[:\\-]\\s*([A-Z][a-z]+(?:\\s[A-Z][a-z]+){0,3})"
+    }
+  ]
+}

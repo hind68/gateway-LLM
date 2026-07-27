@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+venv/
+.venv/
+env/
+.idea/
+.vscode/
+tempCodeRunnerFile.py
+manual_test.py
+alerts.log
+*.log
+.env
+.env.local
+.DS_Store
+Thumbs.db

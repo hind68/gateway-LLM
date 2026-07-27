@@ -1,0 +1,18 @@
+fastapi
+uvicorn
+pydantic
+langdetect
+pymupdf
+pytesseract
+pillow
+python-multipart
+python-docx
+python-pptx
+openpyxl
+# Needed for the multilingual NER pipeline (Davlan/bert-base-multilingual-cased-ner-hrl)
+# in presidio_detector.py (torch is CPU-only here via device="cpu"; for a smaller
+# image, install it from https://download.pytorch.org/whl/cpu instead of plain PyPI)
+transformers
+torch
+pytest
+httpx
