@@ -40,6 +40,13 @@ services:
       - "4000"
       - "--detailed_debug"
     restart: unless-stopped
+  dlp-engine:
+    build: ./dlp-engine
+    container_name: dlp-engine
+    ports:
+      - "8000:8000"
+    environment:
+      - HF_HUB_OFFLINE=1
 
 volumes:
   secure_llm_postgres_data:

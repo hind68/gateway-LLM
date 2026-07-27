@@ -49,6 +49,7 @@ public class ConversationService {
     private final DemoUserProvider demoUserProvider;
     private final LiteLlmService liteLlmService;
     private final MessagePersistenceService messagePersistenceService;
+    private final DlpService dlpService;
     private final int maxContextMessages;
 
     public ConversationService(
@@ -58,6 +59,7 @@ public class ConversationService {
             DemoUserProvider demoUserProvider,
             LiteLlmService liteLlmService,
             MessagePersistenceService messagePersistenceService,
+            DlpService dlpService,
             @Value("${gateway.context.max-messages:20}") int maxContextMessages
     ) {
         this.conversationRepository = conversationRepository;
@@ -66,6 +68,7 @@ public class ConversationService {
         this.demoUserProvider = demoUserProvider;
         this.liteLlmService = liteLlmService;
         this.messagePersistenceService = messagePersistenceService;
+        this.dlpService = dlpService;
         this.maxContextMessages = maxContextMessages;
     }
 
@@ -171,6 +174,18 @@ public class ConversationService {
             throw new ResponseStatusException(BAD_REQUEST, "Conversation is archived");
         }
 
+        String userId = conversation.getUtilisateur().getExternalId();
+
+        // DLP check happens here, before anything is persisted - the
+        // original code saved `content` (raw) straight to the DB below.
+        // hasHighSeverity() blocks outright (nothing gets saved at all);
+        // anything else flagged gets masked before it's ever written down.
+        DlpService.DlpResult dlp = dlpService.analyse(content, userId);
+        if (dlp.hasHighSeverity()) {
+            throw new ResponseStatusException(BAD_REQUEST, "Message blocked: contains sensitive data");
+        }
+        String safeContent = dlp.flagged() ? dlp.maskedText() : content;
+
         ModeleLlm generationModel = conversation.getModele();
         int nextOrder = messageRepository.findMaxOrdre(conversation) + 1;
         Message userMessage = messageRepository.save(new Message(
@@ -178,12 +193,15 @@ public class ConversationService {
                 RoleMessage.USER,
                 nextOrder,
                 StatutMessage.TERMINE,
-                content,
+                safeContent,
                 null
         ));
 
         if ("Nouvelle conversation".equals(conversation.getTitre())) {
-            conversation.rename(titleFrom(content));
+            // Uses safeContent too - the auto-generated title is displayed
+            // and stored just like the message itself, so it shouldn't
+            // carry raw PII either.
+            conversation.rename(titleFrom(safeContent));
         }
 
         Message assistantMessage = messageRepository.save(new Message(
@@ -203,7 +221,8 @@ public class ConversationService {
                 assistantMessage.getId(),
                 toMessageResponse(userMessage),
                 toMessageResponse(assistantMessage),
-                context
+                context,
+                userId
         );
     }
 
@@ -220,17 +239,42 @@ public class ConversationService {
                 preparation.modelAlias(),
                 preparation.context(),
                 token -> {
+                    // Deliberately NOT scanned here: the response isn't
+                    // complete until it's complete, so there's no point
+                    // at which the full text could be checked before an
+                    // individual token has already reached the client.
+                    // Only a full-buffering redesign (hold the whole
+                    // response, scan it, then send it in one shot instead
+                    // of token-by-token) would close that - see the
+                    // note on completeAssistantMessage below for what
+                    // IS covered.
                     answer.append(token);
                     trySend(emitter, "token", token);
                 },
                 () -> {
-                    messagePersistenceService.completeAssistantMessage(preparation.assistantMessageId(), answer.toString());
+                    // The live stream above already went out unscanned,
+                    // but what gets PERSISTED doesn't have to match it -
+                    // this masks the stored copy so at least the database
+                    // (and anything read from it later, e.g. rebuilding
+                    // conversation context for a future message) doesn't
+                    // carry raw PII forward. The SSE "done" event below
+                    // intentionally still sends the raw answer, matching
+                    // what the token stream already showed - masking it
+                    // here but not in the tokens above would just look
+                    // like a glitch to the user.
+                    DlpService.DlpResult dlp = dlpService.analyse(answer.toString(), preparation.userId());
+                    String storedAnswer = dlp.flagged() ? dlp.maskedText() : answer.toString();
+
+                    messagePersistenceService.completeAssistantMessage(preparation.assistantMessageId(), storedAnswer);
                     trySend(emitter, "done", new StreamDoneResponse(preparation.assistantMessageId(), answer.toString()));
                     emitter.complete();
                 },
                 error -> {
                     String fallback = answer.isEmpty() ? "Erreur pendant le streaming LiteLLM." : answer.toString();
-                    messagePersistenceService.failAssistantMessage(preparation.assistantMessageId(), fallback);
+                    DlpService.DlpResult dlp = dlpService.analyse(fallback, preparation.userId());
+                    String storedFallback = dlp.flagged() ? dlp.maskedText() : fallback;
+
+                    messagePersistenceService.failAssistantMessage(preparation.assistantMessageId(), storedFallback);
                     trySend(emitter, "error", "Erreur pendant le streaming LiteLLM.");
                     emitter.complete();
                 }
@@ -343,7 +387,8 @@ public class ConversationService {
             Long assistantMessageId,
             MessageResponse userMessage,
             MessageResponse assistantMessage,
-            List<LiteLlmMessage> context
+            List<LiteLlmMessage> context,
+            String userId
     ) {
     }
 
@@ -353,4 +398,3 @@ public class ConversationService {
     ) {
     }
 }
-

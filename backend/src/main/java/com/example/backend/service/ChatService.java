@@ -18,10 +18,19 @@ public class ChatService {
 
     private final LiteLlmService liteLlmService;
     private final ModeleLlmRepository modeleLlmRepository;
+    private final DlpService dlpService;
+    private final DemoUserProvider demoUserProvider;
 
-    public ChatService(LiteLlmService liteLlmService, ModeleLlmRepository modeleLlmRepository) {
+    public ChatService(
+            LiteLlmService liteLlmService,
+            ModeleLlmRepository modeleLlmRepository,
+            DlpService dlpService,
+            DemoUserProvider demoUserProvider
+    ) {
         this.liteLlmService = liteLlmService;
         this.modeleLlmRepository = modeleLlmRepository;
+        this.dlpService = dlpService;
+        this.demoUserProvider = demoUserProvider;
     }
 
     public List<String> getAvailableModels() {
@@ -43,8 +52,22 @@ public class ChatService {
             throw new ResponseStatusException(BAD_REQUEST, "Unsupported model: " + request.model());
         }
 
-        String answer = liteLlmService.chat(request.model(), request.message());
+        // Same check as ConversationService.prepareStream - this endpoint
+        // doesn't persist anything or track a real conversation, but the
+        // outgoing message still shouldn't reach LiteLLM (and the third-
+        // party provider behind it) unscanned.
+        String userId = demoUserProvider.currentUser().getExternalId();
+        DlpService.DlpResult dlp = dlpService.analyse(request.message(), userId);
+        if (dlp.hasHighSeverity()) {
+            throw new ResponseStatusException(BAD_REQUEST, "Message blocked: contains sensitive data");
+        }
+        String safeMessage = dlp.flagged() ? dlp.maskedText() : request.message();
+
+        // Note: this endpoint has no persistence and no streaming, so
+        // there's no separate "response" side to worry about here the
+        // way there is in ConversationService - the answer just gets
+        // returned directly, once, in the response body.
+        String answer = liteLlmService.chat(request.model(), safeMessage);
         return new ChatResponse(request.model(), answer);
     }
 }
-
