@@ -4,21 +4,22 @@ import tempfile
 from contextlib import asynccontextmanager
 from uuid import uuid4
 
-from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from PIL import Image, UnidentifiedImageError
 
+from app.detectors.banned_words import detect_banned_words
 from app.schemas import AnalyseRequest, AnalyseResponse, MultiSourceAnalyseResponse
 from app.detectors.language import detect_language
-from app.detectors.regex_detector import run_regex_detectors
+from app.detectors.regex_detector import run_regex_detectors, replace_patterns, _PATTERNS_FILE
 from app.detectors.presidio_detector import detect_with_presidio, warm_up_models
 from app.pipeline.dedup import deduplicate_matches
 from app.pipeline.ids import assign_ids
 from app.pipeline.masking import mask_text
 from app.pipeline.alerting import check_and_log_alerts
 from app.pipeline.decision import evaluate_decision, highest_severity, strip_sensitive_values
-from app.config import DLP_MAX_ATTACHMENTS, DLP_MAX_TEXT_LENGTH, MAX_UPLOAD_BYTES
+from app.config import DLP_MAX_ATTACHMENTS, DLP_MAX_TEXT_LENGTH, MAX_UPLOAD_BYTES, DLP_ADMIN_KEY
 from app.ingestion.pdf_parser import extract_text_from_pdf_with_ocr
 from app.ingestion.ocr import extract_text_from_image_object, OCRExtractionError
 from app.ingestion.docx_parser import extract_text_from_docx
@@ -75,6 +76,32 @@ app = FastAPI(title="Secure LLM DLP Service", version="0.1.0", lifespan=lifespan
 app.add_middleware(MaxBodySizeMiddleware)
 
 
+def _require_admin_key(value: str | None) -> None:
+    if not DLP_ADMIN_KEY or value != DLP_ADMIN_KEY:
+        raise HTTPException(status_code=403, detail="Invalid DLP administration key")
+
+
+@app.get("/admin/patterns")
+def get_admin_patterns(x_dlp_admin_key: str | None = Header(default=None)):
+    _require_admin_key(x_dlp_admin_key)
+    import json
+    if not _PATTERNS_FILE.exists():
+        return {"patterns": []}
+    return json.loads(_PATTERNS_FILE.read_text(encoding="utf-8"))
+
+
+@app.put("/admin/patterns")
+def update_admin_patterns(payload: dict, x_dlp_admin_key: str | None = Header(default=None)):
+    _require_admin_key(x_dlp_admin_key)
+    patterns = payload.get("patterns")
+    if not isinstance(patterns, list):
+        raise HTTPException(status_code=400, detail="patterns must be a list")
+    try:
+        return {"patterns": replace_patterns(patterns)}
+    except (TypeError, ValueError) as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
 def _read_upload_limited(file: UploadFile) -> bytes:
     content = file.file.read(MAX_UPLOAD_BYTES + 1)
     if len(content) > MAX_UPLOAD_BYTES:
@@ -95,6 +122,10 @@ def _error_response(code: str = "EXTRACTION_FAILED", message: str = "The content
 
 
 def _success_response(text: str, matches: list[dict], user_id: str | None = None, filename: str | None = None) -> dict:
+    # ALLOW rules are intentionally invisible to downstream masking, alerting,
+    # and response metadata: detection configured as ALLOW must not alter the
+    # message or appear as a security incident.
+    matches = [match for match in matches if match.get("action") != "ALLOW"]
     decision = evaluate_decision(matches)
     check_and_log_alerts(
         matches,
@@ -115,26 +146,21 @@ def _success_response(text: str, matches: list[dict], user_id: str | None = None
     }
 
 
-def run_pipeline(text: str, user_id: str | None = None, filename: str | None = None) -> dict:
-    """
-    The single shared detect -> dedup -> id -> alert -> mask pipeline.
-    """
+def run_pipeline(text: str, user_id: str | None = None, banned_words: list[str] | None = None) -> dict:
     if len(text) > DLP_MAX_TEXT_LENGTH:
-        raise HTTPException(
-            status_code=413,
-            detail=f"Text exceeds maximum length of {DLP_MAX_TEXT_LENGTH} characters.",
-        )
+        raise HTTPException(status_code=413, detail=f"Text exceeds maximum length of {DLP_MAX_TEXT_LENGTH} characters.")
 
     lang = detect_language(text)
-
-    # Run Regex + our multilingual NER engine
-    combined = run_regex_detectors(text) + detect_with_presidio(text, language=lang)
-
+    combined = (
+        run_regex_detectors(text)
+        + detect_with_presidio(text, language=lang)
+        + detect_banned_words(text, banned_words or [])
+    )
     deduped = deduplicate_matches(combined)
     final_matches = assign_ids(deduped)
 
-    return _success_response(text, final_matches, user_id=user_id, filename=filename)
-
+    # Let the built-in helper format the response with the decision, status, and severity!
+    return _success_response(text, final_matches, user_id=user_id)
 
 def run_pipeline_for_segments(known_text: str, free_text: str, user_id: str | None = None, filename: str | None = None) -> dict:
     """
@@ -180,7 +206,7 @@ def run_pipeline_for_segments(known_text: str, free_text: str, user_id: str | No
 
 @app.post("/analyse", response_model=AnalyseResponse)
 def analyse(request: AnalyseRequest):
-    return run_pipeline(request.text, user_id=request.user_id)
+    return run_pipeline(request.text, user_id=request.user_id, banned_words=request.banned_words)
 
 
 @app.post("/analyse-image", response_model=AnalyseResponse)

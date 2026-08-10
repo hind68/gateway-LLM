@@ -50,7 +50,17 @@ export async function changeConversationModelRequest(conversationId, modelAlias)
   })
 }
 
-export function streamConversationMessage(conversationId, content, signal) {
+export function streamConversationMessage(conversationId, content, signal, files = []) {
+  if (files.length > 0 || !content.trim()) {
+    const formData = new FormData()
+    if (content.trim()) formData.append('content', content)
+    files.forEach((file) => formData.append('files', file))
+    return apiFetchResponse(`/conversations/${conversationId}/messages/stream-with-files`, {
+      method: 'POST',
+      body: formData,
+      signal,
+    })
+  }
   return apiFetchResponse(`/conversations/${conversationId}/messages/stream`, {
     method: 'POST',
     json: { content },

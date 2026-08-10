@@ -9,12 +9,23 @@ from app.detectors.regex_detector import (
     detect_credit_cards,
     detect_api_keys,
     add_pattern,
+    _compile_rule,
+    _run_rules,
 )
 import app.detectors.regex_detector as regex_detector_module
 
 
 def test_no_pii():
     assert run_regex_detectors("The weather is nice today.") == []
+
+def test_disabled_pattern_is_not_run():
+    rule = _compile_rule({"name": "disabled", "type": "secret", "pattern": r"SECRET-\d+", "enabled": False})
+    assert _run_rules([rule], "SECRET-123") == []
+
+def test_pattern_action_is_attached_to_matches():
+    rule = _compile_rule({"name": "blocked", "type": "secret", "pattern": r"SECRET-\d+", "action": "block"})
+    matches = _run_rules([rule], "SECRET-123")
+    assert matches[0]["action"] == "BLOCK"
 
 def test_detects_email():
     text = "Contact me at john@company.com please"

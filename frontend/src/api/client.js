@@ -1,9 +1,7 @@
+import keycloak from '../keycloak'
+
 const DEFAULT_API_BASE_URL = '/api'
 
-/**
- * `/api` is the production-safe fallback so the frontend can sit behind a reverse proxy
- * without rebuilding for a specific backend origin.
- */
 export const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL)
 
 export class ApiError extends Error {
@@ -15,24 +13,30 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * JSON requests return parsed data when available and `undefined` for empty responses.
- * Unlike `apiFetchResponse`, this helper consumes the response body.
- */
 export async function apiFetch(path, options = {}) {
   const response = await apiFetchResponse(path, options)
   return parseResponseBody(response)
 }
 
-/**
- * Returns the raw `Response` object. Streaming SSE uses this path because callers must
- * keep direct access to `response.body.getReader()` instead of eagerly parsing content.
- */
 export async function apiFetchResponse(path, options = {}) {
+  try {
+    await keycloak.updateToken(30)
+  } catch (error) {
+    keycloak.login()
+    throw new ApiError('Unauthorized', { status: 401 })
+  }
+
   const response = await fetch(buildApiUrl(path), prepareOptions(options))
+  
+  if (response.status === 401) {
+    keycloak.login()
+    throw new ApiError('Unauthorized', { status: 401 })
+  }
+  
   if (!response.ok) {
     throw await createApiError(response)
   }
+  
   return response
 }
 
@@ -46,6 +50,10 @@ function prepareOptions(options) {
     if (!nextHeaders.has('Content-Type')) {
       nextHeaders.set('Content-Type', 'application/json')
     }
+  }
+
+  if (keycloak.token) {
+    nextHeaders.set('Authorization', `Bearer ${keycloak.token}`)
   }
 
   return {

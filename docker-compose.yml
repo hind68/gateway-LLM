@@ -56,6 +56,7 @@ services:
       DLP_MAX_ZIP_FILES: "50"
       DLP_MAX_ZIP_DEPTH: "3"
       DLP_LOG_LEVEL: "INFO"
+      DLP_ADMIN_KEY: ${DLP_ADMIN_KEY:-dev-dlp-admin}
     restart: unless-stopped
     healthcheck:
       test:

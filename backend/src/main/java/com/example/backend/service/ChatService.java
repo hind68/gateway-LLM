@@ -8,9 +8,10 @@ import com.example.backend.enums.StatutModeleLlm;
 import com.example.backend.integration.litellm.LiteLlmService;
 import com.example.backend.repository.ModeleLlmRepository;
 import java.util.List;
+import java.util.Collection;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 @Service
@@ -19,18 +20,18 @@ public class ChatService {
     private final LiteLlmService liteLlmService;
     private final ModeleLlmRepository modeleLlmRepository;
     private final DlpService dlpService;
-    private final DemoUserProvider demoUserProvider;
+    private final ChatValidationService chatValidationService;
 
     public ChatService(
             LiteLlmService liteLlmService,
             ModeleLlmRepository modeleLlmRepository,
             DlpService dlpService,
-            DemoUserProvider demoUserProvider
+            ChatValidationService chatValidationService
     ) {
         this.liteLlmService = liteLlmService;
         this.modeleLlmRepository = modeleLlmRepository;
         this.dlpService = dlpService;
-        this.demoUserProvider = demoUserProvider;
+        this.chatValidationService = chatValidationService;
     }
 
     public List<String> getAvailableModels() {
@@ -47,14 +48,25 @@ public class ChatService {
                 .toList();
     }
 
-    public ChatResponse chat(ChatRequest request) {
+    public ChatResponse chat(ChatRequest request, UUID userId) {
+        return chat(request, userId, List.of());
+    }
+
+    public ChatResponse chat(ChatRequest request, UUID userId, Collection<String> roles) {
         if (!modeleLlmRepository.existsByAliasInterneAndStatut(request.model(), StatutModeleLlm.ACTIF)) {
             throw new ResponseStatusException(BAD_REQUEST, "Unsupported model: " + request.model());
         }
 
-        String safeMessage = dlpService.safeTextForLlm(request.message(), demoUserProvider.currentUser().getExternalId());
+        chatValidationService.validateLlmAccess(userId, request.model(), roles);
+        List<String> bannedWords = chatValidationService.getBannedWords(userId, roles);
+        String safeMessage = dlpService.safeUserMessage(
+                request.message(),
+                userId,
+                userId.toString(),
+                bannedWords
+        );
         String answer = liteLlmService.chat(request.model(), safeMessage);
+
         return new ChatResponse(request.model(), answer);
     }
 }
-

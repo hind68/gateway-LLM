@@ -72,6 +72,12 @@ public class ModeleLlm {
     public StatutModeleLlm getStatut() {
         return statut;
     }
+
+    public void setFournisseur(FournisseurLlm fournisseur) { this.fournisseur = fournisseur; }
+    public void setAliasInterne(String aliasInterne) { this.aliasInterne = aliasInterne; }
+    public void setNomModeleProvider(String nomModeleProvider) { this.nomModeleProvider = nomModeleProvider; }
+    public void setNomAffichage(String nomAffichage) { this.nomAffichage = nomAffichage; }
+    public void setStatut(StatutModeleLlm statut) { this.statut = statut; }
 }
 
 

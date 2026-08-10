@@ -16,6 +16,7 @@ import os
 _PATTERNS_FILE = Path(os.environ.get("PATTERNS_FILE", Path(__file__).parent / "patterns.json"))
 
 _VALID_SEVERITIES = {"high", "medium", "low"}
+_VALID_ACTIONS = {"ALLOW", "MASK", "BLOCK"}
 
 # Named, reusable post-match checks a pattern can opt into via its
 # "validator" field. Arbitrary Python logic can't live in JSON, so this is
@@ -68,6 +69,11 @@ def _compile_rule(entry: dict) -> dict:
             f"Pattern '{entry['name']}' has severity '{severity}', "
             f"must be one of {sorted(_VALID_SEVERITIES)}"
         )
+    action = entry.get("action")
+    if action is not None:
+        action = str(action).upper()
+        if action not in _VALID_ACTIONS:
+            raise ValueError(f"Pattern '{entry['name']}' has action '{action}', must be one of {sorted(_VALID_ACTIONS)}")
 
     validator_name = entry.get("validator")
     if validator_name is not None and validator_name not in _VALIDATORS:
@@ -86,6 +92,8 @@ def _compile_rule(entry: dict) -> dict:
         "type": _TYPE_ALIASES.get(entry["type"], entry["type"]),
         "regex": regex,
         "severity": severity,
+        "action": action,
+        "enabled": entry.get("enabled", True) is not False,
         "validator": _VALIDATORS.get(validator_name),
         "validator_name": validator_name,
         # Optional: report a specific capture group's span instead of the
@@ -113,6 +121,8 @@ def _rules_of_type(pii_type: str) -> list[dict]:
 def _run_rules(rules: list[dict], text: str) -> list[dict]:
     matches = []
     for rule in rules:
+        if not rule["enabled"]:
+            continue
         for match in rule["regex"].finditer(text):
             group = rule["capture_group"]
             if group is not None:
@@ -137,6 +147,8 @@ def _run_rules(rules: list[dict], text: str) -> list[dict]:
                 "validated": bool(rule["validator"]),
                 "pattern_name": rule["name"],
             })
+            if rule["action"]:
+                matches[-1]["action"] = rule["action"]
     return matches
 
 
@@ -212,3 +224,16 @@ def add_pattern(
         tmp_path.replace(path)
 
         _rules.append(_compile_rule(entry))
+
+
+def replace_patterns(entries: list[dict], path: Path = _PATTERNS_FILE) -> list[dict]:
+    """Validate, persist, and activate the complete administrator rule set."""
+    compiled = [_compile_rule(entry) for entry in entries]
+    with _rules_lock:
+        tmp_path = path.with_suffix(".tmp")
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump({"patterns": entries}, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+        tmp_path.replace(path)
+        _rules[:] = compiled
+    return entries

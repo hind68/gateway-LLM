@@ -14,28 +14,33 @@ import com.example.backend.enums.RoleMessage;
 import com.example.backend.enums.StatutConversation;
 import com.example.backend.enums.StatutMessage;
 import com.example.backend.enums.StatutModeleLlm;
-import com.example.backend.integration.dlp.DlpAnalysisException;
-import com.example.backend.integration.dlp.DlpBlockedException;
-import com.example.backend.integration.dlp.DlpUnavailableException;
+import com.example.backend.exceptions.DlpAnalysisException;
+import com.example.backend.exceptions.DlpBlockedException;
+import com.example.backend.exceptions.DlpUnavailableException;
 import com.example.backend.integration.litellm.LiteLlmMessage;
 import com.example.backend.integration.litellm.LiteLlmService;
 import com.example.backend.entity.Utilisateur;
 import com.example.backend.repository.ConversationRepository;
 import com.example.backend.repository.MessageRepository;
 import com.example.backend.repository.ModeleLlmRepository;
+import org.springframework.security.oauth2.jwt.Jwt;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
@@ -49,35 +54,59 @@ public class ConversationService {
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
     private final ModeleLlmRepository modeleLlmRepository;
-    private final DemoUserProvider demoUserProvider;
+    private final CurrentUserService currentUserService;
     private final LiteLlmService liteLlmService;
     private final DlpService dlpService;
     private final MessagePersistenceService messagePersistenceService;
+    private final ChatValidationService chatValidationService;
+    private final AttachmentService attachmentService;
     private final int maxContextMessages;
 
+    @Autowired
     public ConversationService(
             ConversationRepository conversationRepository,
             MessageRepository messageRepository,
             ModeleLlmRepository modeleLlmRepository,
-            DemoUserProvider demoUserProvider,
+            CurrentUserService currentUserService,
             LiteLlmService liteLlmService,
             DlpService dlpService,
             MessagePersistenceService messagePersistenceService,
+            ChatValidationService chatValidationService,
+            AttachmentService attachmentService,
             @Value("${gateway.context.max-messages:20}") int maxContextMessages
     ) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.modeleLlmRepository = modeleLlmRepository;
-        this.demoUserProvider = demoUserProvider;
+        this.currentUserService = currentUserService;
         this.liteLlmService = liteLlmService;
         this.dlpService = dlpService;
         this.messagePersistenceService = messagePersistenceService;
+        this.chatValidationService = chatValidationService;
+        this.attachmentService = attachmentService;
         this.maxContextMessages = maxContextMessages;
     }
 
+    /** Backward-compatible constructor retained for existing unit tests and integrations. */
+    public ConversationService(
+            ConversationRepository conversationRepository,
+            MessageRepository messageRepository,
+            ModeleLlmRepository modeleLlmRepository,
+            CurrentUserService currentUserService,
+            LiteLlmService liteLlmService,
+            DlpService dlpService,
+            MessagePersistenceService messagePersistenceService,
+            ChatValidationService chatValidationService,
+            int maxContextMessages
+    ) {
+        this(conversationRepository, messageRepository, modeleLlmRepository, currentUserService,
+                liteLlmService, dlpService, messagePersistenceService, chatValidationService,
+                null, maxContextMessages);
+    }
+
     @Transactional
-    public ConversationResponse create(@Valid CreateConversationRequest request) {
-        Utilisateur user = demoUserProvider.currentUser();
+    public ConversationResponse create(@Valid CreateConversationRequest request, Jwt jwt) {
+        Utilisateur user = currentUserService.resolve(jwt);
         ModeleLlm model = activeModel(request.modelAlias());
         String title = normalizeTitle(request.title(), "Nouvelle conversation");
         Conversation conversation = conversationRepository.save(new Conversation(user, model, title));
@@ -85,8 +114,8 @@ public class ConversationService {
     }
 
     @Transactional(readOnly = true)
-    public ConversationPageResponse list(String modelAlias, String search, boolean archived, int page, int size) {
-        Utilisateur user = demoUserProvider.currentUser();
+    public ConversationPageResponse list(String modelAlias, String search, boolean archived, int page, int size, Jwt jwt) {
+        Utilisateur user = currentUserService.resolve(jwt);
         StatutConversation status = archived ? StatutConversation.ARCHIVEE : StatutConversation.ACTIVE;
         PageRequest pageRequest = PageRequest.of(
                 Math.max(page, 0),
@@ -110,41 +139,40 @@ public class ConversationService {
     }
 
     @Transactional(readOnly = true)
-    public ConversationResponse get(Long id) {
-        return toConversationResponse(ownedConversation(id));
+    public ConversationResponse get(Long id, Jwt jwt) {
+        return toConversationResponse(ownedConversation(id, jwt));
     }
 
     @Transactional
-    public ConversationResponse update(Long id, UpdateConversationRequest request) {
-        Conversation conversation = ownedConversation(id);
+    public ConversationResponse update(Long id, UpdateConversationRequest request, Jwt jwt) {
+        Conversation conversation = ownedConversation(id, jwt);
         conversation.rename(normalizeTitle(request.title(), conversation.getTitre()));
         return toConversationResponse(conversation);
     }
 
     @Transactional
-    public ConversationResponse changeModel(Long id, ChangeConversationModelRequest request) {
-        Conversation conversation = ownedConversation(id);
+    public ConversationResponse changeModel(Long id, ChangeConversationModelRequest request, Jwt jwt) {
+        Conversation conversation = ownedConversation(id, jwt);
         ModeleLlm model = activeModel(request.modelAlias());
         conversation.changeModel(model);
         return toConversationResponse(conversation);
     }
 
     @Transactional
-    public void archive(Long id) {
-        Conversation conversation = ownedConversation(id);
-        conversation.archive();
+    public void archive(Long id, Jwt jwt) {
+        ownedConversation(id, jwt).archive();
     }
 
     @Transactional
-    public ConversationResponse restore(Long id) {
-        Conversation conversation = ownedConversation(id);
+    public ConversationResponse restore(Long id, Jwt jwt) {
+        Conversation conversation = ownedConversation(id, jwt);
         conversation.restore();
         return toConversationResponse(conversation);
     }
 
     @Transactional
-    public void deletePermanent(Long id) {
-        Conversation conversation = ownedConversation(id);
+    public void deletePermanent(Long id, Jwt jwt) {
+        Conversation conversation = ownedConversation(id, jwt);
         Long conversationId = id;
         Utilisateur user = conversation.getUtilisateur();
         messageRepository.clearResponseLinksByConversationId(conversationId);
@@ -157,28 +185,34 @@ public class ConversationService {
     }
 
     @Transactional(readOnly = true)
-    public List<MessageResponse> messages(Long conversationId) {
-        Conversation conversation = ownedConversation(conversationId);
+    public List<MessageResponse> messages(Long conversationId, Jwt jwt) {
+        Conversation conversation = ownedConversation(conversationId, jwt);
         return messageRepository.findByConversationOrderByOrdreAsc(conversation)
-                .stream()
-                .map(this::toMessageResponse)
-                .toList();
+                .stream().map(this::toMessageResponse).toList();
     }
 
     @Transactional
-    public StreamPreparation prepareStream(Long conversationId, SendMessageRequest request) {
+    public StreamPreparation prepareStream(Long conversationId, SendMessageRequest request, Jwt jwt) {
         String content = request.content().trim();
         if (content.isBlank()) {
             throw new ResponseStatusException(BAD_REQUEST, "Message content must not be blank");
         }
 
-        Conversation conversation = ownedConversation(conversationId);
+        UUID userId = currentUserService.keycloakId(jwt);
+
+        Conversation conversation = ownedConversation(conversationId, jwt);
         if (conversation.getStatut() != StatutConversation.ACTIVE) {
             throw new ResponseStatusException(BAD_REQUEST, "Conversation is archived");
         }
 
         ModeleLlm generationModel = conversation.getModele();
-        String safeContent = dlpService.safeTextForLlm(content, conversation.getUtilisateur().getExternalId());
+        Utilisateur user = conversation.getUtilisateur();
+        List<String> roles = currentUserService.roles(jwt);
+        chatValidationService.validateLlmAccess(userId, generationModel.getAliasInterne(), roles);
+        List<String> bannedWords = chatValidationService.getBannedWords(userId, roles);
+
+        String safeContent = dlpService.safeUserMessage(content, userId, user.getExternalId(), bannedWords);
+
         int nextOrder = messageRepository.findMaxOrdre(conversation) + 1;
         Message userMessage = messageRepository.save(new Message(
                 conversation,
@@ -204,7 +238,7 @@ public class ConversationService {
         ));
         conversation.touchLastMessageAt(Instant.now());
 
-        List<LiteLlmMessage> context = buildContext(conversation, userMessage, safeContent);
+        List<LiteLlmMessage> context = buildContext(conversation, userMessage, safeContent, bannedWords);
         return new StreamPreparation(
                 generationModel.getAliasInterne(),
                 assistantMessage.getId(),
@@ -215,11 +249,11 @@ public class ConversationService {
     }
 
     @Transactional
-    public SseEmitter streamMessage(Long conversationId, SendMessageRequest request) {
+    public SseEmitter streamMessage(Long conversationId, SendMessageRequest request, Jwt jwt) {
         SseEmitter emitter = new SseEmitter(0L);
         StreamPreparation preparation;
         try {
-            preparation = prepareStream(conversationId, request);
+            preparation = prepareStream(conversationId, request, jwt);
         } catch (DlpAnalysisException exception) {
             trySend(emitter, "error", streamError(exception));
             emitter.complete();
@@ -254,7 +288,41 @@ public class ConversationService {
         return emitter;
     }
 
-    private List<LiteLlmMessage> buildContext(Conversation conversation, Message safeMessage, String safeContent) {
+    public SseEmitter streamMessageWithFiles(Long conversationId, String content, List<MultipartFile> files, Jwt jwt) {
+        StringBuilder prompt = new StringBuilder(content == null ? "" : content);
+        if (files != null) {
+            for (MultipartFile file : files) {
+                if (file == null || file.isEmpty()) continue;
+                prompt.append("\n\n[Fichier: ").append(file.getOriginalFilename()).append("]\n");
+                try {
+                    String text = new String(file.getBytes(), java.nio.charset.StandardCharsets.UTF_8);
+                    prompt.append(text, 0, Math.min(text.length(), 100_000));
+                } catch (IOException ignored) {
+                    prompt.append("[Contenu non lisible]");
+                }
+            }
+        }
+        return streamMessage(conversationId, new SendMessageRequest(prompt.toString()), jwt);
+    }
+
+    @Transactional(readOnly = true)
+    public SseEmitter streamSecureAttachment(Long conversationId, Long attachmentId) {
+        SseEmitter emitter = new SseEmitter(0L);
+        try {
+            String maskedText = attachmentService.maskedTextForConversationAttachment(attachmentId, conversationId);
+            if (maskedText == null || maskedText.isBlank()) {
+                throw new ResponseStatusException(BAD_REQUEST, "Secure attachment content is empty");
+            }
+            trySend(emitter, "token", maskedText);
+            trySend(emitter, "done", maskedText);
+        } catch (RuntimeException exception) {
+            trySend(emitter, "error", exception.getMessage());
+        }
+        emitter.complete();
+        return emitter;
+    }
+
+    private List<LiteLlmMessage> buildContext(Conversation conversation, Message safeMessage, String safeContent, List<String> bannedWords) {
         List<Message> finishedMessages = messageRepository.findByConversationAndStatutAndRoleInOrderByOrdreAsc(
                 conversation,
                 StatutMessage.TERMINE,
@@ -263,17 +331,17 @@ public class ConversationService {
         int fromIndex = Math.max(0, finishedMessages.size() - maxContextMessages);
         List<LiteLlmMessage> context = new ArrayList<>();
         for (Message message : finishedMessages.subList(fromIndex, finishedMessages.size())) {
-            String content = safeContextContent(message, safeMessage, safeContent);
+            String content = safeContextContent(message, safeMessage, safeContent, bannedWords);
             context.add(new LiteLlmMessage(message.getRole().name().toLowerCase(), content));
         }
         return context;
     }
 
-    private String safeContextContent(Message message, Message currentUserMessage, String currentSafeContent) {
+    private String safeContextContent(Message message, Message currentUserMessage, String currentSafeContent, List<String> bannedWords) {
         if (isSameMessage(message, currentUserMessage)) {
             return currentSafeContent;
         }
-        return dlpService.safeTextForLlm(message.getContenu(), message.getConversation().getUtilisateur().getExternalId());
+        return dlpService.safeTextForLlm(message.getContenu(), message.getConversation().getUtilisateur().getExternalId(), bannedWords);
     }
 
     private boolean isSameMessage(Message candidate, Message reference) {
@@ -283,8 +351,8 @@ public class ConversationService {
         return candidate.getId() != null && candidate.getId().equals(reference.getId());
     }
 
-    private Conversation ownedConversation(Long id) {
-        return conversationRepository.findOwnedById(id, demoUserProvider.currentUser())
+    private Conversation ownedConversation(Long id, Jwt jwt) {
+        return conversationRepository.findOwnedById(id, currentUserService.resolve(jwt))
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Conversation not found"));
     }
 
@@ -319,6 +387,11 @@ public class ConversationService {
                 responseToId,
                 modelAlias,
                 modelDisplayName,
+                message.getDlpHighestSeverity(),
+                List.of(),
+                List.of(),
+                message.getDlpMaskedText(),
+                List.of(),
                 message.getCreatedAt(),
                 message.getUpdatedAt()
         );
@@ -416,4 +489,3 @@ public class ConversationService {
     ) {
     }
 }
-

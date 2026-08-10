@@ -1,4 +1,4 @@
-package com.example.backend.integration.dlp;
+package com.example.backend.exceptions;
 
 public class DlpInvalidResponseException extends DlpUnavailableException {
 

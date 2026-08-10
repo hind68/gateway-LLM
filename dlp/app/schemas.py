@@ -51,3 +51,8 @@ class MultiSourceAnalyseResponse(BaseModel):
     highest_severity: str | None = None
     results: list[SourceResult]
     errors: list[DlpError] = []
+
+class AnalyseRequest(BaseModel):
+    text: str
+    user_id: str | None = None
+    banned_words: list[str] | None = None

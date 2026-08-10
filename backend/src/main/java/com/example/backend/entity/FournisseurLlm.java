@@ -61,6 +61,10 @@ public class FournisseurLlm {
         return statut;
     }
 
+    public void setCode(String code) { this.code = code; }
+    public void setNom(String nom) { this.nom = nom; }
+    public void setStatut(StatutFournisseurLlm statut) { this.statut = statut; }
+
     public Set<ModeleLlm> getModeles() {
         return modeles;
     }

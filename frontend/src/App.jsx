@@ -1,15 +1,23 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useContext } from 'react'
+import { AuthContext } from './AuthProvider'
 import useConversations from './features/conversations/hooks/useConversations'
 import AppLayout from './features/layout/AppLayout'
 import useAppMenus from './features/layout/hooks/useAppMenus'
 import useChatController from './features/chat/hooks/useChatController'
 import useChatUi from './features/chat/hooks/useChatUi'
 import useModels from './features/models/hooks/useModels'
+import AdminDashboard from './features/admin/AdminDashboard'
+import { hasAdminRole } from './utils/authUtils'
 
 function App() {
+  const keycloak = useContext(AuthContext)
+  const token = keycloak?.token
+
   const [chatError, setChatError] = useState('')
   const [chatNotice, setChatNotice] = useState('')
   const [showTabs, setShowTabs] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(hasAdminRole(token))
+  const [showAdminDashboard, setShowAdminDashboard] = useState(false)
 
   const showError = useCallback((message) => {
     setChatNotice('')
@@ -96,6 +104,10 @@ function App() {
     },
   }
 
+  if (showAdminDashboard && isAdmin) {
+    return <AdminDashboard onError={showError} onNotice={showNotice} onClose={() => setShowAdminDashboard(false)} />
+  }
+
   return (
     <AppLayout
       layout={{
@@ -132,6 +144,10 @@ function App() {
         chatError,
         chatNotice,
         onClearToast: clearFeedback,
+      }}
+      admin={{
+        isAdmin,
+        setShowAdminDashboard
       }}
     />
   )

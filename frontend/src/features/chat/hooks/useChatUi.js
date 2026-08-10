@@ -2,6 +2,14 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import useAutoScroll from './useAutoScroll'
 import useMessageStream from './useMessageStream'
 import { logDevelopmentError } from '../../../utils/errors'
+import { focusTextareaOnNextFrame, shouldFocusComposer } from '../utils/composerFocus'
+import { ACCEPTED_ATTACHMENT_EXTENSIONS } from '../utils/attachmentFiles'
+
+export const MAX_ATTACHMENTS = Number.POSITIVE_INFINITY
+export { ACCEPTED_ATTACHMENT_EXTENSIONS }
+
+const GO_BOTTOM_GAP = 12
+const GO_BOTTOM_HEIGHT = 32
 
 /**
  * Groups the chat surface state that is independent from conversation CRUD.
@@ -23,16 +31,19 @@ export default function useChatUi({
   const [messages, setMessages] = useState([])
   const [draft, setDraft] = useState('')
   const [copiedKey, setCopiedKey] = useState('')
+  const [attachments, setAttachments] = useState([])
   const [isComposerMaxed, setIsComposerMaxed] = useState(false)
   const [isComposerTransitioning, setIsComposerTransitioning] = useState(false)
+  const [goBottomTop, setGoBottomTop] = useState(null)
 
   const textareaRef = useRef(null)
   const composerRef = useRef(null)
   const composerBeforeRectRef = useRef(null)
   const composerTimerRef = useRef(null)
+  const shouldRestoreComposerFocusRef = useRef(false)
 
   const hasActiveMessages = messages.length > 0
-  const canSend = Boolean(activeModelAlias && draft.trim() && !isGenerating)
+  const canSend = Boolean(activeModelAlias && (draft.trim() || attachments.length > 0) && !isGenerating)
   const {
     bottomRef,
     goToBottom,
@@ -46,11 +57,23 @@ export default function useChatUi({
   const {
     messageCacheRef,
     stopGeneration,
+    streamSecureAttachment,
     streamMessage,
   } = useMessageStream({
     activeConversationIdRef,
     loadConversations,
     modelDisplayName,
+    onStreamSettled: () => {
+      if (!shouldRestoreComposerFocusRef.current) return
+      if (!shouldFocusComposer({
+        activeElement: document.activeElement,
+        composer: composerRef.current,
+        textarea: textareaRef.current,
+      })) {
+        return
+      }
+      focusTextareaOnNextFrame(textareaRef.current)
+    },
     setConversationUiStatus,
     setMessages,
     showError,
@@ -99,10 +122,73 @@ export default function useChatUi({
     resizeTextarea()
   }, [draft, resizeTextarea])
 
+  useLayoutEffect(() => {
+    if (!hasActiveMessages) {
+      setGoBottomTop(null)
+      return undefined
+    }
+
+    const composer = composerRef.current
+    const chatMain = composer?.closest('.chat-main')
+    if (!composer || !chatMain) return undefined
+
+    let frame = 0
+
+    function updateGoBottomTop() {
+      frame = 0
+      const composerRect = composer.getBoundingClientRect()
+      const mainRect = chatMain.getBoundingClientRect()
+      const nextTop = Math.max(12, Math.round(composerRect.top - mainRect.top - GO_BOTTOM_GAP - GO_BOTTOM_HEIGHT))
+      setGoBottomTop((current) => (current === nextTop ? current : nextTop))
+    }
+
+    function scheduleUpdate() {
+      if (frame) return
+      frame = window.requestAnimationFrame(updateGoBottomTop)
+    }
+
+    scheduleUpdate()
+
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(scheduleUpdate)
+    observer?.observe(composer)
+    observer?.observe(chatMain)
+    window.addEventListener('resize', scheduleUpdate)
+
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame)
+      observer?.disconnect()
+      window.removeEventListener('resize', scheduleUpdate)
+    }
+  }, [attachments.length, draft, hasActiveMessages, isComposerMaxed])
+
   useEffect(() => () => {
     if (composerTimerRef.current) {
       window.clearTimeout(composerTimerRef.current)
     }
+  }, [])
+
+  useEffect(() => {
+    function handlePointerDown(event) {
+      if (!shouldRestoreComposerFocusRef.current) return
+      if (composerRef.current?.contains(event.target)) return
+      shouldRestoreComposerFocusRef.current = false
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown, true)
+    return () => document.removeEventListener('pointerdown', handlePointerDown, true)
+  }, [])
+
+  const rememberComposerFocusIntent = useCallback(() => {
+    shouldRestoreComposerFocusRef.current = shouldFocusComposer({
+      activeElement: document.activeElement,
+      composer: composerRef.current,
+      textarea: textareaRef.current,
+    })
+  }, [])
+
+  const restoreComposerFocusSoon = useCallback(() => {
+    if (!shouldRestoreComposerFocusRef.current) return
+    focusTextareaOnNextFrame(textareaRef.current)
   }, [])
 
   const handleKeyDown = useCallback((event) => {
@@ -112,6 +198,30 @@ export default function useChatUi({
       event.currentTarget.form?.requestSubmit()
     }
   }, [isGenerating])
+
+  const addAttachments = useCallback((fileList) => {
+    const incoming = Array.from(fileList || [])
+    const accepted = []
+    for (const file of incoming) {
+      const extension = `.${file.name.split('.').pop() || ''}`.toLowerCase()
+      if (!ACCEPTED_ATTACHMENT_EXTENSIONS.includes(extension)) {
+        showError(`Fichier non supporte : ${file.name}`)
+        continue
+      }
+      accepted.push(file)
+    }
+    setAttachments((current) => {
+      const existingKeys = new Set(current.map(fileKey))
+      const uniqueAccepted = accepted.filter((file) => !existingKeys.has(fileKey(file)))
+      return [...current, ...uniqueAccepted]
+    })
+  }, [showError])
+
+  const removeAttachment = useCallback((index) => {
+    setAttachments((current) => current.filter((_, itemIndex) => itemIndex !== index))
+  }, [])
+
+  const clearAttachments = useCallback(() => setAttachments([]), [])
 
   const onCopy = useCallback(async (text) => {
     if (!text) return false
@@ -128,11 +238,15 @@ export default function useChatUi({
   return {
     bottomRef,
     canSend,
+    attachments,
+    addAttachments,
+    clearAttachments,
     composerBeforeRectRef,
     composerRef,
     copiedKey,
     draft,
     goToBottom,
+    goBottomTop,
     handleKeyDown,
     hasActiveMessages,
     isComposerMaxed,
@@ -145,11 +259,20 @@ export default function useChatUi({
     onMessagesScroll,
     setCopiedKey,
     setDraft,
+    setAttachments,
     setIsLastBlockVisible,
     setMessages,
     shouldAutoScrollRef,
+    rememberComposerFocusIntent,
+    restoreComposerFocusSoon,
     stopGeneration,
+    streamSecureAttachment,
     streamMessage,
+    removeAttachment,
     textareaRef,
   }
+}
+
+function fileKey(file) {
+  return `${file.name || ''}:${file.size || 0}:${file.type || ''}`
 }

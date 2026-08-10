@@ -1,8 +1,12 @@
+import { useContext } from 'react'
+import { getInitials } from '../../utils/authUtils'
+import { AuthContext } from '../../AuthProvider'
 import ArchiveTabs from '../conversations/components/ArchiveTabs'
 import ConversationList from '../conversations/components/ConversationList'
 
 export default function Sidebar({
   activeConversation,
+  admin,
   archiveConversation,
   closeSidebarPanels,
   closeTransientMenus,
@@ -41,6 +45,13 @@ export default function Sidebar({
   toggleCollapsedPanel,
   toggleSidebar,
 }) {
+  const keycloak = useContext(AuthContext)
+  const displayName =
+    keycloak?.tokenParsed?.name ||
+    keycloak?.tokenParsed?.preferred_username ||
+    'Utilisateur'
+  const initials = getInitials(displayName)
+
   const historyListProps = {
     activeConversation,
     archiveConversation,
@@ -60,6 +71,11 @@ export default function Sidebar({
     setIsAccountMenuOpen,
     setOpenMenuId,
     showArchived,
+  }
+
+  const handleAdminClick = () => {
+    setIsAccountMenuOpen(false)
+    admin?.setShowAdminDashboard(true)
   }
 
   return (
@@ -203,20 +219,20 @@ export default function Sidebar({
             }}
           >
             <span className="user-avatar-wrapper">
-              <span className="user-avatar">HA</span>
+              <span className="user-avatar">{initials}</span>
             </span>
             <span className="user-copy">
-              <strong>Hind Alami</strong>
+              <strong>{displayName}</strong>
             </span>
           </button>
           {isSidebarOpen && isAccountMenuOpen && (
-            <AccountPopover />
+            <AccountPopover admin={admin} onAdminClick={handleAdminClick} />
           )}
         </div>
       </aside>
 
       {!isSidebarOpen && isAccountMenuOpen && (
-        <AccountPopover className="account-popover-collapsed" />
+        <AccountPopover className="account-popover-collapsed" admin={admin} onAdminClick={handleAdminClick} />
       )}
 
       {!isSidebarOpen && collapsedPanel && (
@@ -241,10 +257,21 @@ export default function Sidebar({
   )
 }
 
-function AccountPopover({ className = 'account-popover-open' }) {
+function AccountPopover({ className = 'account-popover-open', admin, onAdminClick }) {
+  const keycloak = useContext(AuthContext)
+
   return (
     <div className={`account-popover ${className}`} role="menu" data-menu-root>
-      <button type="button" role="menuitem">
+      {admin?.isAdmin && (
+        <button type="button" role="menuitem" onClick={onAdminClick}>
+          Administration
+        </button>
+      )}
+      <button
+        type="button"
+        role="menuitem"
+        onClick={() => keycloak?.logout({ redirectUri: window.location.origin })}
+      >
         Se deconnecter
       </button>
     </div>

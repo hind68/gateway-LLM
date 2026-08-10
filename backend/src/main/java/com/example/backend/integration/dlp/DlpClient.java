@@ -1,7 +1,10 @@
 package com.example.backend.integration.dlp;
 
+import com.example.backend.exceptions.DlpAnalysisException;
+import com.example.backend.exceptions.DlpUnavailableException;
 import io.netty.channel.ChannelOption;
 import java.time.Duration;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -30,17 +33,12 @@ public class DlpClient {
         this.readTimeout = readTimeout;
     }
 
-    /**
-     * Calls the DLP analyser before any LLM request. Any transport, timeout, HTTP,
-     * or JSON-shape problem is converted to an unavailable error so callers can
-     * apply the gateway fail-closed policy without leaking prompt content.
-     */
-    public DlpAnalysisResponse analyse(String text, String userId) {
+    public DlpAnalysisResponse analyse(String text, String userId, List<String> bannedWords) {
         try {
             return webClient.post()
                     .uri("/analyse")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(new DlpAnalysisRequest(text, userId))
+                    .bodyValue(new DlpAnalysisRequest(text, userId, bannedWords))
                     .retrieve()
                     .onStatus(
                             status -> status.isError(),

@@ -1,7 +1,7 @@
 package com.example.backend.controller;
 
-import com.example.backend.integration.dlp.DlpBlockedException;
-import com.example.backend.integration.dlp.DlpUnavailableException;
+import com.example.backend.exceptions.DlpBlockedException;
+import com.example.backend.exceptions.DlpUnavailableException;
 import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;

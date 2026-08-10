@@ -28,6 +28,11 @@ public class Utilisateur {
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
     private Instant updatedAt;
 
+    public Utilisateur(String externalId, String nomAffichage) {
+        this.externalId = externalId;
+        this.nomAffichage = nomAffichage;
+    }
+
     protected Utilisateur() {
     }
 

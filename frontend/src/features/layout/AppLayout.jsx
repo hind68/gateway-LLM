@@ -16,6 +16,7 @@ export default function AppLayout({
   models,
   conversations,
   feedback,
+  admin, // <-- Added admin here
 }) {
   const { state, filters, editing, dialogs, actions, status } = conversations
   const activeConversation = state.activeConversation
@@ -24,6 +25,7 @@ export default function AppLayout({
     <div className={`app-shell ${layout.isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       <Sidebar
         activeConversation={activeConversation}
+        admin={admin} // <-- Passed admin to Sidebar
         archiveConversation={actions.archiveConversation}
         closeSidebarPanels={layout.closeSidebarPanels}
         closeTransientMenus={layout.closeTransientMenus}
@@ -134,11 +136,13 @@ export default function AppLayout({
           messages={chat.messages}
           messagesRef={chat.messagesRef}
           onCopy={chat.onCopy}
+          onInspectDocument={chat.onInspectDocument}
           onMessagesScroll={chat.onMessagesScroll}
           setCopiedKey={chat.setCopiedKey}
         />
 
         <ChatComposer
+          attachments={chat.attachments}
           canSend={chat.canSend}
           composerRef={chat.composerRef}
           draft={chat.draft}
@@ -146,7 +150,11 @@ export default function AppLayout({
           isComposerMaxed={chat.isComposerMaxed}
           isGenerating={status.isGenerating}
           onDraftChange={chat.setDraft}
+          onFilesSelected={chat.addAttachments}
+          onInspectDocument={chat.onInspectDocument}
           onKeyDown={chat.handleKeyDown}
+          onRemoveFile={chat.removeAttachment}
+          onRemoveFiles={chat.clearAttachments}
           onStop={chat.stopGeneration}
           onSubmit={actions.sendMessage}
           textareaRef={chat.textareaRef}

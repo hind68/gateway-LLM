@@ -51,6 +51,21 @@ public class Message {
     @JoinColumn(name = "modele_llm_id")
     private ModeleLlm modele;
 
+    @Column(name = "dlp_highest_severity", length = 20)
+    private String dlpHighestSeverity;
+
+    @Column(name = "dlp_detected_types", columnDefinition = "TEXT")
+    private String dlpDetectedTypes;
+
+    @Column(name = "dlp_matches_json", columnDefinition = "TEXT")
+    private String dlpMatches;
+
+    @Column(name = "dlp_masked_text", columnDefinition = "TEXT")
+    private String dlpMaskedText;
+
+    @Column(name = "attachment_metadata_json", columnDefinition = "TEXT")
+    private String attachmentMetadataJson;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -96,6 +111,26 @@ public class Message {
         this.statut = StatutMessage.ECHEC;
     }
 
+    public void blockByDlp(String highestSeverity, String detectedTypes) {
+        blockByDlp(highestSeverity, detectedTypes, null, null);
+    }
+
+    public void blockByDlp(String highestSeverity, String detectedTypes, String matches) {
+        blockByDlp(highestSeverity, detectedTypes, matches, null);
+    }
+
+    public void blockByDlp(String highestSeverity, String detectedTypes, String matches, String maskedText) {
+        this.statut = StatutMessage.DLP_BLOCKED;
+        this.dlpHighestSeverity = highestSeverity;
+        this.dlpDetectedTypes = detectedTypes;
+        this.dlpMatches = matches;
+        this.dlpMaskedText = maskedText;
+    }
+
+    public void setAttachmentMetadataJson(String attachmentMetadataJson) {
+        this.attachmentMetadataJson = attachmentMetadataJson;
+    }
+
     public Long getId() {
         return id;
     }
@@ -126,6 +161,26 @@ public class Message {
 
     public ModeleLlm getModele() {
         return modele;
+    }
+
+    public String getDlpHighestSeverity() {
+        return dlpHighestSeverity;
+    }
+
+    public String getDlpDetectedTypes() {
+        return dlpDetectedTypes;
+    }
+
+    public String getDlpMatches() {
+        return dlpMatches;
+    }
+
+    public String getDlpMaskedText() {
+        return dlpMaskedText;
+    }
+
+    public String getAttachmentMetadataJson() {
+        return attachmentMetadataJson;
     }
 
     public Instant getCreatedAt() {
