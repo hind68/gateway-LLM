@@ -26,6 +26,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
@@ -34,15 +36,18 @@ public class AttachmentService {
 
     private final AttachmentRepository attachmentRepository;
     private final DemoUserProvider demoUserProvider;
+    private final CurrentUserService currentUserService;
     private final Path storageRoot;
 
     public AttachmentService(
             AttachmentRepository attachmentRepository,
             DemoUserProvider demoUserProvider,
+            CurrentUserService currentUserService,
             @Value("${app.attachments.storage-dir:storage/attachments}") String storageDir
     ) {
         this.attachmentRepository = attachmentRepository;
         this.demoUserProvider = demoUserProvider;
+        this.currentUserService = currentUserService;
         this.storageRoot = Paths.get(storageDir).toAbsolutePath().normalize();
     }
 
@@ -178,8 +183,17 @@ public class AttachmentService {
     }
 
     private Attachment ownedAttachment(Long id) {
-        return attachmentRepository.findOwnedById(id, demoUserProvider.currentUser())
+        return attachmentRepository.findOwnedById(id, authenticatedUser())
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Attachment not found"));
+    }
+
+    private com.example.backend.entity.Utilisateur authenticatedUser() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication() == null
+                ? null : SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal instanceof Jwt jwt) {
+            return currentUserService.resolve(jwt);
+        }
+        return demoUserProvider.currentUser();
     }
 
     private DlpAttachmentAnalysis findAnalysis(MultipartFile file, List<DlpAttachmentAnalysis> analyses) {

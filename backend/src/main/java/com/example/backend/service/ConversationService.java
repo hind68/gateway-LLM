@@ -289,20 +289,64 @@ public class ConversationService {
     }
 
     public SseEmitter streamMessageWithFiles(Long conversationId, String content, List<MultipartFile> files, Jwt jwt) {
-        StringBuilder prompt = new StringBuilder(content == null ? "" : content);
-        if (files != null) {
-            for (MultipartFile file : files) {
-                if (file == null || file.isEmpty()) continue;
-                prompt.append("\n\n[Fichier: ").append(file.getOriginalFilename()).append("]\n");
-                try {
-                    String text = new String(file.getBytes(), java.nio.charset.StandardCharsets.UTF_8);
-                    prompt.append(text, 0, Math.min(text.length(), 100_000));
-                } catch (IOException ignored) {
-                    prompt.append("[Contenu non lisible]");
-                }
+        SseEmitter emitter = new SseEmitter(0L);
+        try {
+            Conversation conversation = ownedConversation(conversationId, jwt);
+            UUID userId = currentUserService.keycloakId(jwt);
+            List<String> bannedWords = chatValidationService.getBannedWords(userId, currentUserService.roles(jwt));
+            List<DlpAttachmentAnalysis> analyses = files == null ? List.of() : files.stream()
+                    .filter(file -> file != null && !file.isEmpty())
+                    .map(file -> dlpService.analyseAttachment(file, userId, conversation.getUtilisateur().getExternalId(), bannedWords))
+                    .toList();
+            StringBuilder prompt = new StringBuilder(content == null ? "" : content);
+            for (DlpAttachmentAnalysis analysis : analyses) {
+                prompt.append("\n\n[Fichier: ").append(analysis.filename()).append("]\n")
+                        .append(analysis.maskedText() == null ? "" : analysis.maskedText());
             }
+            StreamPreparation preparation = prepareStream(conversationId, new SendMessageRequest(prompt.toString()), jwt);
+            Message userMessage = messageRepository.findById(preparation.userMessage().id()).orElseThrow();
+            List<AttachmentMetadata> attachments = attachmentService.store(userMessage, files, analyses);
+            userMessage.setAttachmentMetadataJson(serializeAttachmentMetadata(attachments));
+            MessageResponse userResponse = withAttachments(preparation.userMessage(), attachments);
+            trySend(emitter, "message", userResponse);
+            trySend(emitter, "message", preparation.assistantMessage());
+            streamPrepared(emitter, preparation);
+        } catch (DlpAnalysisException exception) {
+            trySend(emitter, "error", streamError(exception));
+            emitter.complete();
+        } catch (RuntimeException exception) {
+            trySend(emitter, "error", exception.getMessage() == null ? "File processing failed" : exception.getMessage());
+            emitter.complete();
         }
-        return streamMessage(conversationId, new SendMessageRequest(prompt.toString()), jwt);
+        return emitter;
+    }
+
+    private void streamPrepared(SseEmitter emitter, StreamPreparation preparation) {
+        StringBuilder answer = new StringBuilder();
+        liteLlmService.streamChat(preparation.modelAlias(), preparation.context(), token -> {
+            answer.append(token);
+            trySend(emitter, "token", token);
+        }, () -> {
+            messagePersistenceService.completeAssistantMessage(preparation.assistantMessageId(), answer.toString());
+            trySend(emitter, "done", new StreamDoneResponse(preparation.assistantMessageId(), answer.toString()));
+            emitter.complete();
+        }, error -> {
+            String fallback = answer.isEmpty() ? "Erreur pendant le streaming LiteLLM." : answer.toString();
+            messagePersistenceService.failAssistantMessage(preparation.assistantMessageId(), fallback);
+            trySend(emitter, "error", "Erreur pendant le streaming LiteLLM.");
+            emitter.complete();
+        });
+    }
+
+    private MessageResponse withAttachments(MessageResponse message, List<AttachmentMetadata> attachments) {
+        return new MessageResponse(message.id(), message.role(), message.order(), message.status(), message.content(),
+                message.responseToMessageId(), message.modelAlias(), message.modelDisplayName(), message.dlpHighestSeverity(),
+                message.dlpDetectedTypes(), message.dlpMatches(), message.dlpMaskedText(), attachments,
+                message.createdAt(), message.updatedAt());
+    }
+
+    private String serializeAttachmentMetadata(List<AttachmentMetadata> attachments) {
+        return attachments == null ? "" : attachments.stream().map(item -> item.id() + "\t" + item.filename() + "\t" + item.mimeType() + "\t" + item.size() + "\t" + item.decision() + "\t" + item.safeCharacters() + "\t" + item.estimatedTokens() + "\t" + item.extractionStatus()).collect(java.util.stream.Collectors.joining("\n"));
     }
 
     @Transactional(readOnly = true)

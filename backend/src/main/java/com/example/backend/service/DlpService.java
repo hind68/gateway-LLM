@@ -8,6 +8,9 @@ import com.example.backend.exceptions.DlpInvalidResponseException;
 import com.example.backend.integration.dlp.DlpMatch;
 import com.example.backend.exceptions.DlpUnavailableException;
 import java.util.List;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Set;
 import java.util.UUID;
@@ -78,6 +81,31 @@ public class DlpService {
         }
 
         return response.maskedText();
+    }
+
+    public DlpAttachmentAnalysis analyseAttachment(MultipartFile file, UUID userKeycloakId, String dlpUserId, List<String> bannedWords) {
+        String filename = file == null || file.getOriginalFilename() == null ? "attachment" : file.getOriginalFilename();
+        String text;
+        try {
+            text = file == null ? "" : new String(file.getBytes(), StandardCharsets.UTF_8);
+        } catch (IOException exception) {
+            return new DlpAttachmentAnalysis(filename, filename, file == null ? "application/octet-stream" : file.getContentType(),
+                    file == null ? 0 : file.getSize(), "BLOCK", 0, 0, "ERROR", "", "", List.of());
+        }
+        DlpAnalysisResponse response = dlpClient.analyse(text, dlpUserId, bannedWords);
+        validateResponse(response);
+        if (response.decision() == DlpDecision.BLOCK) {
+            auditWriter.recordBlocked(userKeycloakId, text, reasonFrom(response), response);
+            throw new DlpBlockedException(response.highestSeverity(), detectedTypes(response));
+        }
+        String masked = response.maskedText() == null ? text : response.maskedText();
+        List<com.example.backend.integration.dlp.DlpPublicMatch> matches = response.matches() == null ? List.of() : response.matches().stream()
+                .map(match -> new com.example.backend.integration.dlp.DlpPublicMatch(null, filename, match.id(), match.type(), match.start(), match.end(), null, match.severity(), null))
+                .toList();
+        return new DlpAttachmentAnalysis(filename, filename,
+                file == null || file.getContentType() == null ? "application/octet-stream" : file.getContentType(),
+                file == null ? 0 : file.getSize(), response.decision().name(), masked.length(), (int) Math.ceil(masked.length() / 4.0),
+                "SUCCESS", text, masked, matches);
     }
     private String reasonFrom(DlpAnalysisResponse response) {
         Set<String> types = detectedTypes(response);
