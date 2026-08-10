@@ -293,10 +293,11 @@ public class ConversationService {
         try {
             Conversation conversation = ownedConversation(conversationId, jwt);
             UUID userId = currentUserService.keycloakId(jwt);
+            Utilisateur authenticatedUser = currentUserService.resolve(jwt);
             List<String> bannedWords = chatValidationService.getBannedWords(userId, currentUserService.roles(jwt));
             List<DlpAttachmentAnalysis> analyses = files == null ? List.of() : files.stream()
                     .filter(file -> file != null && !file.isEmpty())
-                    .map(file -> dlpService.analyseAttachment(file, userId, conversation.getUtilisateur().getExternalId(), bannedWords))
+                    .map(file -> dlpService.analyseAttachment(file, userId, authenticatedUser.getExternalId(), bannedWords))
                     .toList();
             StringBuilder prompt = new StringBuilder(content == null ? "" : content);
             for (DlpAttachmentAnalysis analysis : analyses) {
