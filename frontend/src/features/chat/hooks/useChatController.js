@@ -62,7 +62,8 @@ export default function useChatController({
       return
     }
     const prompt = chat.draft.trim()
-    if (!prompt) {
+    const attachments = Array.isArray(chat.attachments) ? chat.attachments : []
+    if (!prompt && attachments.length === 0) {
       feedback.showError('Le message ne peut pas etre vide.')
       return
     }
@@ -76,8 +77,9 @@ export default function useChatController({
     shouldAutoScrollRef.current = true
 
     try {
-      const conversation = await actions.ensureConversation(prompt)
-      void chat.streamMessage(conversation, prompt)
+      const conversation = await actions.ensureConversation(prompt || `Fichier joint: ${attachments[0]?.name || 'document'}`)
+      void chat.streamMessage(conversation, prompt, attachments)
+      chat.clearAttachments()
     } catch (error) {
       feedback.showError(friendlyGenerationError(error))
     }

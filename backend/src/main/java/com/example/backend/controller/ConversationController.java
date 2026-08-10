@@ -97,7 +97,7 @@ public class ConversationController {
     @PostMapping(value = "/conversations/{id}/messages/stream-with-files", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamConversationMessageWithFiles(
             @PathVariable Long id,
-            @RequestPart("content") String content,
+            @RequestPart(required = false, name = "content") String content,
             @RequestPart(required = false, name = "files") List<MultipartFile> files,
             @AuthenticationPrincipal Jwt jwt
     ) {
