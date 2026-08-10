@@ -23,8 +23,8 @@
     background: rgba(0, 0, 0, 0.2);
   }
 
-  .chat-main,
-  .sidebar-closed .chat-main {
+  .chat-workspace,
+  .sidebar-closed .chat-workspace {
     margin-left: 56px;
   }
 
@@ -57,10 +57,6 @@
     left: -4px;
   }
 
-  .composer-center,
-  .sidebar-closed .composer-center {
-    left: calc(56px + (100vw - 56px) / 2);
-  }
 }
 
 

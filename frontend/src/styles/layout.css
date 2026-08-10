@@ -1,22 +1,101 @@
 ﻿/* App shell */
 .app-shell {
-  min-height: 100vh;
+  height: 100vh;
   background: #ffffff;
   color: #1f1f1f;
+  display: flex;
   overflow: hidden;
 }
 
 /* Main chat layout */
+.chat-workspace {
+  min-width: 0;
+  height: 100vh;
+  display: flex;
+  flex: 1;
+  margin-left: var(--sidebar-total-open-width);
+  overflow: hidden;
+  transition: margin-left 240ms cubic-bezier(0.2, 0, 0, 1);
+}
+
 .chat-main {
+  position: relative;
+  flex: 1;
   min-width: 0;
   height: 100vh;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  margin-left: var(--sidebar-total-open-width);
-  transition: margin-left 240ms cubic-bezier(0.2, 0, 0, 1);
+  overflow: hidden;
+  transition: width 0.3s ease;
 }
 
-.sidebar-closed .chat-main {
+.drag-drop-overlay {
+  position: absolute;
+  z-index: 80;
+  inset: 0;
+  background-color: rgba(243, 244, 246, 0.9);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.drag-drop-card {
+  width: min(400px, calc(100% - 48px));
+  max-width: 400px;
+  border: 2px dashed #D1D5DB;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #4B5563;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  box-shadow: 0 22px 70px rgba(75, 85, 99, 0.12);
+}
+
+.drag-drop-card strong {
+  color: #4B5563;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.drag-drop-icon {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 12px;
+  position: relative;
+}
+
+.drag-drop-icon::before,
+.drag-drop-icon::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #4B5563;
+}
+
+.drag-drop-icon::before {
+  width: 1.5px;
+  height: 24px;
+  top: 5px;
+  border-radius: 999px;
+}
+
+.drag-drop-icon::after {
+  width: 12px;
+  height: 12px;
+  top: 5px;
+  border-left: 1.5px solid #4B5563;
+  border-top: 1.5px solid #4B5563;
+  background: transparent;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.sidebar-closed .chat-workspace {
   margin-left: var(--sidebar-closed-width);
 }
 

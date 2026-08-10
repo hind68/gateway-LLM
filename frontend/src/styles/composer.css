@@ -5,11 +5,10 @@
   border-radius: 22px;
   background: #ffffff;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.045);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 6px;
-  padding: 6px 7px 6px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 12px 16px;
   font-size: 15.5px;
 }
 
@@ -29,7 +28,7 @@
     0 18px 55px rgba(48, 61, 80, 0.09),
     0 2px 8px rgba(48, 61, 80, 0.04);
   backdrop-filter: blur(14px);
-  padding: 8px 9px 8px 18px;
+  padding: 12px 16px;
 }
 
 .composer-bottom {
@@ -39,18 +38,15 @@
 }
 
 .composer-center {
-  position: fixed;
-  z-index: 10;
-  left: calc(var(--sidebar-total-open-width) + (100vw - var(--sidebar-total-open-width)) / 2);
-  top: calc(50% - 8px);
-  transform: translate(-50%, 0);
-}
-
-.sidebar-closed .composer-center {
-  left: calc(var(--sidebar-closed-width) + (100vw - var(--sidebar-closed-width)) / 2);
+  position: static;
+  margin: 0;
+  justify-self: center;
+  align-self: center;
+  transform: none;
 }
 
 .composer textarea {
+  width: 100%;
   min-height: 34px;
   max-height: 150px;
   overflow-y: hidden;
@@ -65,6 +61,14 @@
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
   transition: opacity 160ms ease;
+}
+
+.composer-input-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 6px;
 }
 
 .composer.is-generating textarea {
@@ -160,4 +164,372 @@
   color: #ffffff;
 }
 
+.composer-attachments-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    max-height 220ms cubic-bezier(0.2, 0, 0, 1),
+    padding 220ms cubic-bezier(0.2, 0, 0, 1),
+    opacity 180ms ease,
+    transform 220ms cubic-bezier(0.2, 0, 0, 1);
+}
 
+.composer-attachments {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  width: 100%;
+  max-height: 170px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 6px 64px 8px 6px;
+  scrollbar-width: none;
+}
+
+.composer-attachments-wrapper.is-hiding {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  transform: translateY(10px);
+}
+
+.composer-attachments::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.attachment-chip {
+  position: relative;
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #FFFFFF;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 0;
+  overflow: visible;
+  box-shadow: none !important;
+}
+
+.attachment-chip-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.attachment-name {
+  max-width: 260px;
+  min-width: 0;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.attachment-size {
+  color: #6B7280;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.attachment-chip .file-type-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.composer .attach-button {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background-color: transparent;
+  color: #6B7280;
+  cursor: pointer;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  font-weight: 400 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  transition: background-color 0.2s ease;
+  align-self: center;
+  transform: none !important;
+}
+
+.composer .attach-button:hover {
+  background-color: #F3F4F6;
+  border-color: transparent;
+  
+}
+
+.composer button.attachment-remove-button {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border: none;
+  border-radius: 50%;
+  background: #111111;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  opacity: 0;
+  padding: 0;
+  pointer-events: none;
+  transform: scale(0.92);
+  transition: opacity 0.16s ease, transform 0.16s ease, background-color 0.16s ease;
+}
+
+.composer button.attachment-remove-button:hover {
+  background: #000000;
+}
+
+.composer button.attachment-remove-button span,
+.composer button.attachment-remove-button .x-icon {
+  width: 9px;
+  height: 9px;
+  display: block;
+  position: relative;
+  font-size: 0;
+  line-height: 0;
+}
+
+.composer button.attachment-remove-button span::before,
+.composer button.attachment-remove-button span::after,
+.composer button.attachment-remove-button .x-icon::before,
+.composer button.attachment-remove-button .x-icon::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 0;
+  width: 9px;
+  height: 1.75px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.composer button.attachment-remove-button span::before,
+.composer button.attachment-remove-button .x-icon::before {
+  transform: rotate(45deg);
+}
+
+.composer button.attachment-remove-button span::after,
+.composer button.attachment-remove-button .x-icon::after {
+  transform: rotate(-45deg);
+}
+
+.composer button.attachment-remove-button:focus-visible,
+.composer .attachment-chip:hover button.attachment-remove-button,
+.composer .attachment-chip:focus-within button.attachment-remove-button {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
+}
+
+.composer button.clear-attachments {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 4;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border: none;
+  border-radius: 50%;
+  background: #F3F4F6;
+  color: #9CA3AF;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.composer button.clear-attachments:hover {
+  background-color: #FFE4E6;
+  color: #FB7185;
+  box-shadow: none;
+}
+
+.composer button.clear-attachments span {
+  width: 12px;
+  height: 12px;
+  display: block;
+  position: relative;
+  line-height: 0;
+}
+
+.composer button.clear-attachments span::before,
+.composer button.clear-attachments span::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  left: 0;
+  width: 12px;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.composer button.clear-attachments span::before {
+  transform: rotate(45deg);
+}
+
+.composer button.clear-attachments span::after {
+  transform: rotate(-45deg);
+}
+
+.paperclip-icon {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-left-color: transparent;
+  border-radius: 10px;
+  transform: rotate(-35deg);
+}
+
+.plus-icon {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  line-height: 1;
+  position: relative;
+  display: block;
+  font-size: 20px;
+  font-weight: 400 !important;
+}
+
+.plus-icon::before,
+.plus-icon::after {
+  content: '';
+  position: absolute;
+  border-radius: 999px;
+  background: currentColor;
+  height: 2px;
+  font-weight: 400 !important;
+}
+
+.plus-icon::before {
+  top: 9px;
+  left: 2px;
+  width: 16px;
+  height: 2px;
+}
+
+.plus-icon::after {
+  top: 2px;
+  left: 9px;
+  width: 2px;
+  height: 16px;
+}
+
+
+.x-icon {
+  width: 12px;
+  height: 12px;
+  position: relative;
+}
+
+.x-icon::before,
+.x-icon::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  left: 1px;
+  width: 10px;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.x-icon::before {
+  transform: rotate(45deg);
+}
+
+.x-icon::after {
+  transform: rotate(-45deg);
+}
+
+/* Targeted composer UI fixes */
+.composer {
+  max-width: calc(100% - 36px);
+  min-width: 0;
+}
+
+.attachment-chip {
+  width: auto;
+  min-width: 0;
+  max-width: 220px;
+  flex: 0 0 clamp(150px, 30%, 220px);
+  flex-shrink: 0;
+}
+
+.attachment-chip-copy {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.attachment-name {
+  max-width: 100%;
+  overflow: hidden;
+  overflow-wrap: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-break: normal;
+}
+
+
+.composer button.attachment-remove-button {
+  top: -5px;
+  right: -5px;
+  z-index: 3;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+}
+
+.composer button.attachment-remove-button span,
+.composer button.attachment-remove-button .x-icon {
+  width: 8px;
+  height: 8px;
+}
+
+.composer button.attachment-remove-button span::before,
+.composer button.attachment-remove-button span::after,
+.composer button.attachment-remove-button .x-icon::before,
+.composer button.attachment-remove-button .x-icon::after {
+  top: 3px;
+  width: 8px;
+  height: 1.5px;
+}

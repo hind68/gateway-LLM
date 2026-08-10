@@ -1,27 +1,36 @@
 ﻿/* History errors */
 .history-error {
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  background: #ffffff;
-  padding: 6px;
-}
-
-/* History error retry */
-.history-error {
-  color: #7c3f12;
-  display: grid;
+  background-color: #F9FAFB;
+  border: 1px dashed #E5E7EB;
+  border-radius: 8px;
+  color: #6B7280;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
   gap: 8px;
+  padding: 16px;
   font-size: 13px;
+  font-weight: 400;
 }
 
 .history-error button {
   width: fit-content;
-  border: 0;
-  border-radius: 999px;
-  background: #7c3f12;
-  color: #ffffff;
+  background: transparent;
+  border: 1px solid #D1D5DB;
+  color: #4B5563;
   cursor: pointer;
-  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.history-error button:hover {
+  background-color: #F3F4F6;
+  color: #111827;
+  border-color: #9CA3AF;
 }
 
 /* Toast and inline feedback */

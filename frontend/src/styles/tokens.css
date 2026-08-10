@@ -18,7 +18,7 @@
   --sidebar-open-width: 248px;
   --sidebar-total-open-width: 248px;
   --chat-content-width: 760px;
-  --assistant-content-width: 736px;
+  --assistant-content-width: var(--chat-content-width);
   --border-subtle: rgba(31, 41, 55, 0.08);
 }
 

@@ -3,8 +3,10 @@
   color: #202020;
   font-size: 15.5px;
   line-height: 1.7;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  white-space: normal;
+  word-break: normal;
 }
 
 .markdown-body[dir="rtl"] {
