@@ -33,6 +33,7 @@ class AnalyseResponse(BaseModel):
     decision: Decision
     flagged: bool | None
     highest_severity: str | None = None
+    extracted_text: str | None = None
     masked_text: str | None
     matches: list[Match]
     errors: list[DlpError] = []

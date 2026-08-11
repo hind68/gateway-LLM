@@ -141,6 +141,7 @@ def _success_response(text: str, matches: list[dict], user_id: str | None = None
         "decision": decision,
         "flagged": len(matches) > 0,
         "highest_severity": highest_severity(matches),
+        "extracted_text": text,
         "matches": strip_sensitive_values(matches),
         "masked_text": masked,
         "errors": [],
