@@ -67,6 +67,7 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
             select c
             from Conversation c
             join fetch c.modele
+            join fetch c.utilisateur
             where c.id = :id
               and c.utilisateur = :utilisateur
             """)

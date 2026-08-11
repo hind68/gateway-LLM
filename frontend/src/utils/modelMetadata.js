@@ -48,33 +48,33 @@ export function modelCardMeta(alias) {
     'secure-gpt': {
       initials: 'GPT',
       tone: 'tone-openai',
-      description: 'Modele generaliste adapte aux reponses concises, au raisonnement et aux usages quotidiens.',
+      description: 'Modèle généraliste adapté aux réponses concises, au raisonnement et aux usages quotidiens.',
     },
     'secure-groq': {
       initials: 'GQ',
       tone: 'tone-groq',
-      description: 'Modele rapide pour tester les conversations et obtenir des reponses reactives.',
+      description: 'Modèle rapide pour tester les conversations et obtenir des réponses réactives.',
     },
     'secure-gemini': {
       initials: 'GM',
       tone: 'tone-gemini',
-      description: 'Modele polyvalent pour explorer, reformuler et structurer des idees.',
+      description: 'Modèle polyvalent pour explorer, reformuler et structurer des idées.',
     },
     'secure-mistral': {
       initials: 'MS',
       tone: 'tone-mistral',
-      description: 'Modele efficace pour les taches pratiques, les syntheses et les prompts directs.',
+      description: 'Modèle efficace pour les tâches pratiques, les synthèses et les prompts directs.',
     },
     'secure-claude': {
       initials: 'CL',
       tone: 'tone-claude',
-      description: 'Modele oriente redaction, analyse longue et conversations soignees.',
+      description: 'Modèle orienté rédaction, analyse longue et conversations soignées.',
     },
   }
   return metas[alias] || {
     initials: cleanModelName(alias, alias).slice(0, 2).toUpperCase(),
     tone: 'tone-default',
-    description: 'Modele disponible dans le catalogue Secure LLM Gateway.',
+    description: 'Modèle disponible dans le catalogue Secure LLM Gateway.',
   }
 }
 
@@ -90,11 +90,10 @@ export function modelLogoSrc(alias) {
 }
 
 export function titleFrom(content) {
-  const compact = content.replace(/\s+/g, ' ').trim()
-  const words = compact
-    .split(' ')
-    .map((word) => word.replace(/[^\p{L}\p{N}]/gu, ''))
-    .filter((word) => word.length >= 4)
-    .slice(0, 6)
-  return words.length > 0 ? `Discussion: ${words.join(' ')}` : 'Nouvelle conversation'
+  const compact = content
+    .replace(/^Pieces jointes\s*:[^\n]*(?:\n|$)/i, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!compact) return 'Nouvelle conversation'
+  return `Discussion: ${compact.length > 72 ? `${compact.slice(0, 69)}...` : compact}`
 }

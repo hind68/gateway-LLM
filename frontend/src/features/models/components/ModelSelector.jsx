@@ -9,7 +9,7 @@ export default function ModelSelector({ activeModel, disabled, isOpen, models, o
         onClick={onToggle}
         disabled={disabled}
       >
-        <span>{activeModel?.displayName || 'Modele'}</span>
+        <span>{activeModel?.displayName || 'Modèle'}</span>
         <span className="model-arrow" aria-hidden="true"></span>
       </button>
       {isOpen && (

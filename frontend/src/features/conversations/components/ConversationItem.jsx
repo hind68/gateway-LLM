@@ -52,7 +52,7 @@ export default function ConversationItem({
           <span className="history-title">
             <span>{displayConversationTitle(conversation.title)}</span>
             {isGeneratingConversation && <InlineGeneratingIndicator />}
-            {isUnread && !isGeneratingConversation && <span className="notification-dot" aria-label="Reponse prete"></span>}
+            {isUnread && !isGeneratingConversation && <span className="notification-dot" aria-label="Réponse prête"></span>}
           </span>
           <small className="model-badge">{cleanModelName(conversation.modelDisplayName, conversation.modelAlias)}</small>
         </button>
@@ -60,7 +60,7 @@ export default function ConversationItem({
       <ConversationMenu
         id={`conversation-${conversation.id}`}
         isOpen={openMenuId === conversation.id}
-        archiveLabel={showArchived || conversation.status === 'ARCHIVEE' ? 'Desarchiver' : 'Archiver'}
+        archiveLabel={showArchived || conversation.status === 'ARCHIVEE' ? 'Désarchiver' : 'Archiver'}
         onArchive={() => (showArchived || conversation.status === 'ARCHIVEE' ? restoreConversation(conversation) : archiveConversation(conversation))}
         onDelete={() => deleteConversation(conversation)}
         onOpen={() => {
@@ -75,7 +75,7 @@ export default function ConversationItem({
 
 function InlineGeneratingIndicator() {
   return (
-    <span className="inline-generating" aria-label="Generation en cours">
+    <span className="inline-generating" aria-label="Génération en cours">
       <span></span>
       <span></span>
       <span></span>

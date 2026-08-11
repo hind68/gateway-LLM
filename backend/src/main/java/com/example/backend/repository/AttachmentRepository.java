@@ -19,6 +19,7 @@ public interface AttachmentRepository extends JpaRepository<Attachment, Long> {
             from Attachment a
             join fetch a.message m
             join fetch m.conversation c
+            join fetch c.utilisateur
             where a.id = :id
               and c.utilisateur = :user
             """)

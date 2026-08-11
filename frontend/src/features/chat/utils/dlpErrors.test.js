@@ -38,7 +38,7 @@ describe('dlpUserMessage', () => {
       message: 'backend detail',
     })).toBe([
       'Contrôle de sécurité indisponible.',
-      "Votre message n’a pas été envoyé au modèle.",
+      'Votre message n’a pas été envoyé au modèle.',
       'Réessayez dans quelques instants.',
     ].join('\n'))
   })

@@ -24,10 +24,10 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(DlpUnavailableException.class)
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
-    public ApiError handleDlpUnavailable() {
+    public ApiError handleDlpUnavailable(DlpUnavailableException exception) {
         return new ApiError(
                 "DLP_UNAVAILABLE",
-                "Le controle de securite est indisponible. Le message n'a pas ete envoye au modele.",
+                exception.getMessage(),
                 Set.of(),
                 null
         );

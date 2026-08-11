@@ -49,10 +49,10 @@ export default function SearchModal({
           <ArchiveTabs showArchived={showArchived} setShowArchived={setShowArchived} />
           <ModelFilterDropdown modelFilter={modelFilter} models={models} setModelFilter={setModelFilter} />
         </div>
-        <div className="search-results" role="listbox" aria-label="Resultats de recherche">
+        <div className="search-results" role="listbox" aria-label="Résultats de recherche">
           {isLoadingHistory && <div className="search-result-empty">Recherche...</div>}
           {!isLoadingHistory && visibleConversations.length === 0 && (
-            <div className="search-result-empty">Aucune conversation trouvee</div>
+            <div className="search-result-empty">Aucune conversation trouvée</div>
           )}
           {!isLoadingHistory && visibleConversations.map((conversation) => (
             <button

@@ -3,7 +3,7 @@ import { DownArrowIcon } from '../../../components/common/icons'
 
 export default function ModelFilterDropdown({ modelFilter, models, setModelFilter }) {
   const [isModelFilterOpen, setIsModelFilterOpen] = useState(false)
-  const activeFilterLabel = models.find((model) => model.alias === modelFilter)?.displayName || 'Tous les modeles'
+  const activeFilterLabel = models.find((model) => model.alias === modelFilter)?.displayName || 'Tous les modèles'
 
   return (
     <div className="custom-dropdown" data-menu-root>
@@ -18,7 +18,7 @@ export default function ModelFilterDropdown({ modelFilter, models, setModelFilte
         <DownArrowIcon />
       </button>
       {isModelFilterOpen && (
-        <ul className="custom-dropdown-menu" role="listbox" aria-label="Filtrer par modele">
+        <ul className="custom-dropdown-menu" role="listbox" aria-label="Filtrer par modèle">
           <li
             role="option"
             aria-selected={modelFilter === ''}
@@ -28,7 +28,7 @@ export default function ModelFilterDropdown({ modelFilter, models, setModelFilte
               setIsModelFilterOpen(false)
             }}
           >
-            Tous les modeles
+            Tous les modèles
           </li>
           {models.map((model) => (
             <li

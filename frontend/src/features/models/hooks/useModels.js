@@ -36,7 +36,7 @@ export default function useModels({ activeConversation, onError, onLoaded }) {
         setSelectedModel((current) => selectAvailableModel(normalized, current))
         onLoaded()
       } catch {
-        onError('Impossible de charger les modeles.')
+        onError('Impossible de charger les modèles.')
       }
     } finally {
       setIsLoadingModels(false)
@@ -57,7 +57,7 @@ export default function useModels({ activeConversation, onError, onLoaded }) {
   const activeModel = models.find((model) => model.alias === activeModelAlias)
 
   const modelDisplayName = useCallback((alias) => {
-    return models.find((model) => model.alias === alias)?.displayName || cleanModelName(alias, alias) || 'Modele'
+    return models.find((model) => model.alias === alias)?.displayName || cleanModelName(alias, alias) || 'Modèle'
   }, [models])
 
   return {

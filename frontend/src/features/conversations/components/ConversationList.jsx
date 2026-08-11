@@ -25,8 +25,9 @@ export default function ConversationList({
     <>
       {historyError && (
         <div className="history-error">
+          <span className="history-error-icon" aria-hidden="true">↻</span>
           <span>{historyError}</span>
-          <button type="button" onClick={loadConversations}>Reessayer</button>
+          <button type="button" onClick={loadConversations}>Réessayer</button>
         </div>
       )}
 

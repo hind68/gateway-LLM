@@ -12,9 +12,9 @@ export default function ModelGallery({ disabled, models, onClose, onSelect }) {
         <div className="model-gallery-header">
           <div>
             <span>Catalogue</span>
-            <h2 id="model-gallery-title">Explorer les modeles</h2>
+            <h2 id="model-gallery-title">Explorer les modèles</h2>
           </div>
-          <button className="close-button" type="button" aria-label="Fermer l explorateur" onClick={onClose}>
+          <button className="close-button" type="button" aria-label="Fermer l’explorateur" onClick={onClose}>
             <span className="close-icon" aria-hidden="true"></span>
           </button>
         </div>

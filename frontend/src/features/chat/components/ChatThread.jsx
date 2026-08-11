@@ -14,8 +14,10 @@ export default function ChatThread({
   messages,
   messagesRef,
   onCopy,
+  onInspectDocument,
   onMessagesScroll,
   setCopiedKey,
+  welcomeComposer,
 }) {
   return (
     <>
@@ -30,16 +32,19 @@ export default function ChatThread({
             <div className="empty-state">
               <h2>Comment puis-je vous aider ?</h2>
             </div>
+            {!hasActiveMessages && welcomeComposer}
           </div>
         )}
 
         {messages.map((item) => (
           <ChatMessage
             copiedKey={copiedKey}
+            fallbackModelAlias={activeModelAlias}
             fallbackModelName={activeModelName || activeModelAlias}
             key={item.id}
             message={item}
             onCopy={onCopy}
+            onInspectDocument={onInspectDocument}
             setCopiedKey={setCopiedKey}
           />
         ))}
@@ -50,7 +55,7 @@ export default function ChatThread({
         <button
           className={`go-bottom-button ${isGenerating ? 'is-generating' : ''}`}
           type="button"
-          aria-label="Defiler vers le bas"
+          aria-label="Défiler vers le bas"
           onClick={goToBottom}
         >
           {isGenerating ? (

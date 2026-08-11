@@ -3,6 +3,7 @@ import { parseJson } from './sse'
 const TYPE_LABELS = {
   moroccan_cin: 'CIN',
   ma_cin: 'CIN',
+  alphanumeric_identifier: 'identifiant alphanumérique',
   email: 'adresse e-mail',
   phone_number: 'numéro de téléphone',
   moroccan_phone: 'numéro de téléphone',
@@ -28,7 +29,7 @@ export function dlpUserMessage(value) {
   if (payload.code === 'DLP_UNAVAILABLE') {
     return [
       'Contrôle de sécurité indisponible.',
-      "Votre message n’a pas été envoyé au modèle.",
+      'Votre message n’a pas été envoyé au modèle.',
       'Réessayez dans quelques instants.',
     ].join('\n')
   }

@@ -406,7 +406,8 @@ def analyse_message(
         if not isinstance(parsed_banned_words, list):
             parsed_banned_words = []
     except (TypeError, ValueError):
-        parsed_banned_words = []
+        # The gateway sends one word per line for multipart compatibility.
+        parsed_banned_words = [word.strip() for word in (banned_words or "").splitlines() if word.strip()]
 
     results = []
 

@@ -66,7 +66,7 @@ export default function useConversations({
       setHistoryError('')
       return content
     } catch {
-      setHistoryError('Impossible de charger l historique.')
+      setHistoryError('Impossible de charger l’historique.')
       return []
     } finally {
       setHasLoadedHistory(true)
@@ -168,7 +168,7 @@ export default function useConversations({
       await loadConversations()
       return { wasActive }
     } catch {
-      feedback.showError('Impossible d archiver la conversation.')
+      feedback.showError('Impossible d’archiver la conversation.')
       return { wasActive: false }
     }
   }, [activeConversation, closeMenus, feedback, isGenerating, loadConversations])
@@ -185,10 +185,10 @@ export default function useConversations({
         saveActiveConversationId(updated.id)
       }
       closeMenus()
-      feedback.showNotice('Conversation desarchivee.')
+      feedback.showNotice('Conversation désarchivée.')
       await loadConversations()
     } catch (error) {
-      feedback.showError(requestErrorMessage(error, 'Impossible de desarchiver la conversation.'))
+      feedback.showError(requestErrorMessage(error, 'Impossible de désarchiver la conversation.'))
     }
   }, [activeConversation, closeMenus, feedback, isGenerating, loadConversations, setSelectedModel])
 
@@ -217,7 +217,7 @@ export default function useConversations({
       clearActiveConversationId(conversation.id)
       closeMenus()
       setPendingDeleteConversation(null)
-      feedback.showNotice('Conversation supprimee.')
+      feedback.showNotice('Conversation supprimée.')
       await loadConversations()
       return { wasActive }
     } catch (error) {
@@ -239,7 +239,7 @@ export default function useConversations({
       setModelDecision(null)
       return updated
     } catch (error) {
-      feedback.showError(requestErrorMessage(error, 'Impossible de changer le modele.'))
+      feedback.showError(requestErrorMessage(error, 'Impossible de changer le modèle.'))
       return null
     }
   }, [activeConversation, feedback, setSelectedModel])

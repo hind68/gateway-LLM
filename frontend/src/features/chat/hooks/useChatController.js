@@ -52,6 +52,7 @@ export default function useChatController({
     actions.newConversationRecord(modelAlias)
     chat.setMessages([])
     chat.setDraft('')
+    chat.clearAttachments()
     chat.setIsLastBlockVisible(true)
     shouldAutoScrollRef.current = true
   }, [actions, chat, models.selectedModel, shouldAutoScrollRef])
@@ -62,26 +63,29 @@ export default function useChatController({
       return
     }
     const prompt = chat.draft.trim()
-    const attachments = Array.isArray(chat.attachments) ? chat.attachments : []
+    const attachments = chat.attachments || []
     if (!prompt && attachments.length === 0) {
-      feedback.showError('Le message ne peut pas etre vide.')
+      feedback.showError('Le message ne peut pas être vide.')
       return
     }
 
     feedback.clearChatError()
+    chat.rememberComposerFocusIntent()
     if (!chat.hasActiveMessages && composerRef.current) {
       composerBeforeRectRef.current = composerRef.current.getBoundingClientRect()
     }
     chat.setDraft('')
+    chat.clearAttachments()
+    chat.restoreComposerFocusSoon()
     chat.setIsLastBlockVisible(true)
     shouldAutoScrollRef.current = true
 
     try {
-      const conversation = await actions.ensureConversation(prompt || `Fichier joint: ${attachments[0]?.name || 'document'}`)
+      const conversation = await actions.ensureConversation(prompt)
       void chat.streamMessage(conversation, prompt, attachments)
-      chat.clearAttachments()
     } catch (error) {
       feedback.showError(friendlyGenerationError(error))
+      chat.restoreComposerFocusSoon()
     }
   }, [actions, chat, composerBeforeRectRef, composerRef, feedback, shouldAutoScrollRef, status.isGenerating])
 
