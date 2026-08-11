@@ -32,12 +32,17 @@ export function normalizeAssistantMarkdown(content) {
 
       if (isCodeBlock) return line
 
-      return line.replace(/^(#{1,6})(?=\S)/, (match, hashes) => {
-        if (hashes.length === 1 && /^#include\b/i.test(line)) return match
-        return `${hashes} `
-      })
+      return normalizeMarkdownHeading(line)
     })
     .join('\n')
+}
+
+function normalizeMarkdownHeading(line) {
+  if (/^\s{0,3}\\?#include\b/i.test(line)) return line
+
+  return line.replace(/^(\s{0,3})(\\?)(#{1,6})(?:\s+(?=\S)|(?=[^\s#]))(.*)$/, (_match, indent, escape, hashes, text) => (
+    `${indent}${hashes} ${text}`
+  ))
 }
 
 function splitStickyFenceLanguage(language, rest) {

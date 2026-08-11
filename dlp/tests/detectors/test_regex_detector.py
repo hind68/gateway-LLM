@@ -137,20 +137,46 @@ def test_detects_single_letter_cin_number():
     matches = [m for m in run_regex_detectors(text) if m["type"] == "moroccan_cin"]
     assert any(m["value"] == "A123456" for m in matches)
 
+def test_cin_lookalike_shapes_are_maskable_identifiers_without_context():
+    for value in ["A123456", "AB123456", "BE1234567", "GI22568", "ac12345", "Ac12345", "aC12345"]:
+        matches = [m for m in run_regex_detectors(value) if m["type"] == "alphanumeric_identifier"]
+        assert len(matches) == 1
+        assert matches[0]["value"] == value
+        assert matches[0]["severity"] == "medium"
+
+def test_cin_detection_preserves_original_case_and_offsets():
+    text = "ma cin est ac12345"
+    matches = [m for m in run_regex_detectors(text) if m["type"] == "moroccan_cin"]
+    assert len(matches) == 1
+    assert matches[0]["value"] == "ac12345"
+    assert text[matches[0]["start"]:matches[0]["end"]] == "ac12345"
+
 def test_detects_carte_nationale_cin_number():
     text = "Numero de carte nationale BE1234567"
     matches = [m for m in run_regex_detectors(text) if m["type"] == "moroccan_cin"]
     assert any(m["value"] == "BE1234567" for m in matches)
 
+def test_detects_english_national_id_context_as_cin():
+    text = "My national ID is AB123456"
+    matches = [m for m in run_regex_detectors(text) if m["type"] == "moroccan_cin"]
+    assert any(m["value"] == "AB123456" for m in matches)
+
+def test_detects_arabic_card_context_as_cin():
+    text = "رقم البطاقة الوطنية هو AB123456"
+    matches = [m for m in run_regex_detectors(text) if m["type"] == "moroccan_cin"]
+    assert any(m["value"] == "AB123456" for m in matches)
+
 def test_ticket_reference_shape_is_not_cin_without_context():
     text = "La reference du ticket est AB123456."
-    matches = [m for m in run_regex_detectors(text) if m["type"] == "moroccan_cin"]
-    assert matches == []
+    matches = run_regex_detectors(text)
+    assert not any(m["type"] == "moroccan_cin" for m in matches)
+    assert any(m["type"] == "alphanumeric_identifier" for m in matches)
 
 def test_build_reference_shape_is_not_cin_without_context():
     text = "Le build AB123456 a echoue."
-    matches = [m for m in run_regex_detectors(text) if m["type"] == "moroccan_cin"]
-    assert matches == []
+    matches = run_regex_detectors(text)
+    assert not any(m["type"] == "moroccan_cin" for m in matches)
+    assert any(m["type"] == "alphanumeric_identifier" for m in matches)
 
 def test_detects_civil_registry_number():
     text = "N d'etat civil 2003/137 figure au dos de la carte."
@@ -216,6 +242,26 @@ def test_detects_env_style_secret():
     text = 'DB_PASSWORD=hunter2345'
     matches = [m for m in run_regex_detectors(text) if m["type"] == "hardcoded_secret"]
     assert any(m["value"] == "hunter2345" for m in matches)
+
+def test_detects_real_env_style_secret_next_to_placeholder_cases():
+    text = "DB_PASSWORD=realSecret123"
+    matches = [m for m in run_regex_detectors(text) if m["type"] == "hardcoded_secret"]
+    assert any(m["value"] == "realSecret123" for m in matches)
+
+def test_env_style_secret_ignores_synapse_hardcoded_secret_placeholder():
+    text = "DB_PASSWORD=[HARDCODED_SECRET_1]"
+    matches = [m for m in run_regex_detectors(text) if m["type"] == "hardcoded_secret"]
+    assert matches == []
+
+def test_env_style_secret_ignores_synapse_github_token_placeholder():
+    text = "GITHUB_TOKEN=[GITHUB_TOKEN_1]"
+    matches = run_regex_detectors(text)
+    assert not any(m["type"] in {"hardcoded_secret", "github_token"} for m in matches)
+
+def test_env_style_secret_ignores_prefixed_openai_placeholder():
+    text = "OPENAI_API_KEY=sk-proj-[API_KEY_1]"
+    matches = run_regex_detectors(text)
+    assert not any(m["type"] in {"hardcoded_secret", "openai_api_key"} for m in matches)
 
 def test_env_style_secret_ignores_unrelated_assignment():
     text = "DEBUG=true"

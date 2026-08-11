@@ -5,6 +5,7 @@ from pathlib import Path
 
 from app.detectors.luhn import is_luhn_valid
 from app.detectors.iban import is_iban_valid
+from app.pipeline.masking import is_neutralized_placeholder_value
 
 # Patterns live in patterns.json rather than as hardcoded constants here,
 # so adding a new one is a data change, not a code change - see
@@ -108,7 +109,11 @@ def _compile_rule(entry: dict) -> dict:
 def load_patterns(path: Path = _PATTERNS_FILE) -> list[dict]:
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
-    return [_compile_rule(entry) for entry in data.get("patterns", [])]
+    return [
+        _compile_rule(entry)
+        for entry in data.get("patterns", [])
+        if _TYPE_ALIASES.get(entry.get("type"), entry.get("type")) != "person_name"
+    ]
 
 
 _rules = load_patterns()
@@ -137,6 +142,8 @@ def _run_rules(rules: list[dict], text: str) -> list[dict]:
                 value = match.group()
                 start, end = match.start(), match.end()
 
+            if is_neutralized_placeholder_value(value):
+                continue
             if rule["validator"] and not rule["validator"](value):
                 continue
             matches.append({
@@ -190,6 +197,8 @@ def add_pattern(
     """
     if severity not in _VALID_SEVERITIES:
         raise ValueError(f"severity must be one of {sorted(_VALID_SEVERITIES)}, got '{severity}'")
+    if _TYPE_ALIASES.get(pii_type, pii_type) == "person_name":
+        raise ValueError("person_name detection is disabled by policy")
     if validator is not None and validator not in _VALIDATORS:
         raise ValueError(f"Unknown validator '{validator}'. Known validators: {sorted(_VALIDATORS)}")
     try:

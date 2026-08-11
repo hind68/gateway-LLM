@@ -5,13 +5,13 @@ from app.ingestion.ooxml_media import extract_text_from_embedded_images
 
 def extract_text_from_docx(path: str) -> str:
     doc = Document(path)
-    parts = [p.text for p in doc.paragraphs if p.text.strip()]
+    parts = [p.text for p in doc.paragraphs]
 
     for table in doc.tables:
         for row in table.rows:
             for cell in row.cells:
                 if cell.text.strip():
-                    parts.append(cell.text)
+                    parts.extend(cell.text.splitlines() or [cell.text])
 
     # Headers/footers aren't covered by doc.paragraphs above - letterheads
     # and "Confidential" footers commonly carry contact info or markings

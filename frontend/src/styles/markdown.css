@@ -96,6 +96,47 @@
   text-underline-offset: 2px;
 }
 
+.markdown-body img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 12px 0;
+  border-radius: 10px;
+}
+
+.markdown-image-fallback {
+  display: block;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 12px 0;
+  border: 1px dashed rgba(100, 116, 139, 0.28);
+  border-radius: 10px;
+  background: rgba(248, 250, 252, 0.78);
+  color: #64748b;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.markdown-image-fallback span,
+.markdown-image-fallback small {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.markdown-image-fallback span {
+  color: #475569;
+  font-weight: 600;
+}
+
+.markdown-image-fallback small {
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+}
+
 .markdown-body code {
   border: 1px solid rgba(31, 41, 55, 0.06);
   border-radius: 6px;

@@ -25,6 +25,7 @@ TYPE_SEVERITY = {
     "cvv": "high",
     "civil_registry_number": "high",
     "ip_address": "high",
+    "alphanumeric_identifier": "medium",
     "email": "medium",
     "phone_number": "medium",
     "person_name": "medium",

@@ -17,12 +17,21 @@ MOROCCAN_BIC_SWIFT = "MOROCCAN_BIC_SWIFT"
 _CIN_CONTEXT_TERMS = (
     "cin",
     "c i n",
+    "cnie",
     "carte nationale",
     "carte d identite",
     "carte identite",
+    "numero d identite",
+    "identite nationale",
     "identifiant national",
+    "national id",
+    "id card",
     "identity card",
     "national identity",
+    "البطاقة الوطنية",
+    "بطاقة التعريف",
+    "رقم البطاقة",
+    "رقم التعريف الوطني",
 )
 
 
@@ -31,7 +40,8 @@ def _normalize_context(text: str) -> str:
         char for char in unicodedata.normalize("NFKD", text)
         if not unicodedata.combining(char)
     )
-    return re.sub(r"[^a-z0-9]+", " ", without_accents.lower()).strip()
+    latin_context = re.sub(r"[^a-z0-9]+", " ", without_accents.lower()).strip()
+    return f"{latin_context} {text}"
 
 
 class MoroccanCinRecognizer(EntityRecognizer):
@@ -42,7 +52,7 @@ class MoroccanCinRecognizer(EntityRecognizer):
     span while keeping the MA_CIN entity type.
     """
 
-    _candidate_pattern = re.compile(r"(?<![A-Za-z0-9])[A-Z]{1,2}\d{5,8}(?![A-Za-z0-9])")
+    _candidate_pattern = re.compile(r"(?<![A-Za-z0-9])[A-Za-z]{1,2}\d{5,8}(?![A-Za-z0-9])")
 
     def __init__(self) -> None:
         super().__init__(

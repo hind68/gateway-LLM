@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 def extract_text_from_pdf(pdf_path: str) -> str:
     with fitz.open(pdf_path) as doc:
-        return "".join(page.get_text() for page in doc)
+        return "\n".join(page.get_text() for page in doc)
 
 
 def extract_text_from_pdf_with_ocr(pdf_path: str) -> str:
@@ -46,4 +46,4 @@ def extract_text_from_pdf_with_ocr(pdf_path: str) -> str:
                     # it and move on to the next image.
                     logger.warning("Skipping unreadable embedded image (xref=%s): %s", xref, e)
 
-    return "".join(text_parts)
+    return "\n".join(text_parts)

@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react'
+import { memo, useMemo, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import rehypeSanitize from 'rehype-sanitize'
 import remarkGfm from 'remark-gfm'
@@ -31,6 +31,7 @@ function MarkdownContent({ content, copiedKey, direction, onCopy, setCopiedKey }
         />
       )
     },
+    img: MarkdownImage,
   }), [copiedKey, onCopy, setCopiedKey])
 
   return (
@@ -44,6 +45,50 @@ function MarkdownContent({ content, copiedKey, direction, onCopy, setCopiedKey }
       </ReactMarkdown>
     </div>
   )
+}
+
+export function MarkdownImage({ src = '', alt = '', title }) {
+  const [hasError, setHasError] = useState(false)
+  const imageSrc = String(src || '')
+  const imageAlt = String(alt || '')
+  const imageTitle = title ? String(title) : undefined
+
+  if (hasError || !isRenderableMarkdownImageUrl(imageSrc)) {
+    return (
+      <span
+        className="markdown-image-fallback"
+        data-src={imageSrc || undefined}
+        role="img"
+        aria-label={fallbackImageLabel(imageAlt)}
+        title={imageTitle}
+      >
+        <span>Image indisponible</span>
+        {imageAlt && <small>{imageAlt}</small>}
+      </span>
+    )
+  }
+
+  return (
+    <img
+      src={imageSrc}
+      alt={imageAlt}
+      title={imageTitle}
+      onError={() => setHasError(true)}
+    />
+  )
+}
+
+export function isRenderableMarkdownImageUrl(src) {
+  try {
+    const url = new URL(String(src || ''))
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+function fallbackImageLabel(alt) {
+  return alt ? `Image indisponible - ${alt}` : 'Image indisponible'
 }
 
 export default memo(MarkdownContent)

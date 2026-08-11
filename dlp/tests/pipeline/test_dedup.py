@@ -38,3 +38,18 @@ def test_dedup_does_not_crash_on_missing_source_key():
     ]
     result = deduplicate_matches(matches)
     assert len(result) == 1
+
+
+def test_dedup_removes_all_overlapping_lower_quality_matches():
+    matches = [
+        {"type": "openai_api_key", "start": 15, "end": 62, "source": "regex", "severity": "high", "score": 0.8, "pattern_name": "openai_key"},
+        {"type": "api_key", "start": 23, "end": 62, "source": "regex", "severity": "high", "score": 0.8, "pattern_name": "generic_secret"},
+        {"type": "location", "start": 20, "end": 30, "source": "presidio", "severity": "low", "score": 0.9, "presidio_entity_type": "LOCATION"},
+    ]
+
+    result = deduplicate_matches(matches)
+
+    assert len(result) == 1
+    assert result[0]["type"] == "openai_api_key"
+    assert result[0]["start"] == 15
+    assert result[0]["end"] == 62

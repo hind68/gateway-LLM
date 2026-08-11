@@ -1,9 +1,11 @@
+import re
+import unicodedata
+
 from app.detectors.presidio_config import SUPPORTED_NLP_LANGUAGES, get_analyzer, warm_up_analyzer
 from app.policy import severity_for
 
 
 ENTITY_TYPE_MAP = {
-    "PERSON": "person_name",
     "EMAIL_ADDRESS": "email",
     "PHONE_NUMBER": "phone_number",
     "CREDIT_CARD": "credit_card",
@@ -45,6 +47,12 @@ _NLP_ACRONYM_FALSE_POSITIVES = {
 }
 
 _NLP_SINGLE_TOKEN_FALSE_POSITIVES = {
+    "authorization",
+    "content type",
+    "bearer",
+    "api",
+    "url",
+    "l objectif",
     "donne",
     "donnez",
     "explique",
@@ -67,6 +75,26 @@ _NLP_SINGLE_TOKEN_FALSE_POSITIVES = {
 
 _GENERIC_NLP_ENTITY_TYPES = {"PERSON", "LOCATION", "ORGANIZATION"}
 
+_NLP_EXCLUDED_TERMS = {
+    "authorization",
+    "content type",
+    "bearer",
+    "openai",
+    "api",
+    "url",
+    "spring boot",
+    "l objectif",
+}
+
+_TECHNICAL_CONTEXT_PATTERNS = (
+    re.compile(r"(^|\s)curl\s+", re.IGNORECASE),
+    re.compile(r"\b(?:authorization|content-type|accept|user-agent)\s*:", re.IGNORECASE),
+    re.compile(r"\b(?:GET|POST|PUT|PATCH|DELETE)\s+https?://", re.IGNORECASE),
+    re.compile(r"\b(?:const|let|var|function|class|public|private|import|return)\b"),
+    re.compile(r"\b(?:OPENAI_API_KEY|api[_-]?key|bearer|jwt|token)\b", re.IGNORECASE),
+    re.compile(r"[{};=]"),
+)
+
 
 def warm_up_models() -> None:
     warm_up_analyzer()
@@ -79,8 +107,10 @@ def detect_with_presidio(text: str, language: str = "en") -> list[dict]:
     results = get_analyzer().analyze(text=text, language=language)
     matches = []
     for result in results:
+        if result.entity_type == "PERSON":
+            continue
         detected_text = text[result.start:result.end]
-        if _is_generic_nlp_false_positive(result.entity_type, detected_text):
+        if _is_generic_nlp_false_positive(result.entity_type, detected_text, text):
             continue
 
         internal_type = ENTITY_TYPE_MAP.get(result.entity_type)
@@ -98,15 +128,34 @@ def detect_with_presidio(text: str, language: str = "en") -> list[dict]:
     return matches
 
 
-def _is_generic_nlp_false_positive(entity_type: str, detected_text: str) -> bool:
+def _is_generic_nlp_false_positive(entity_type: str, detected_text: str, full_text: str = "") -> bool:
     if entity_type not in _GENERIC_NLP_ENTITY_TYPES:
         return False
+    normalized_text = _normalize_nlp_text(detected_text)
+    if normalized_text in _NLP_EXCLUDED_TERMS:
+        return True
+    if _is_technical_context(full_text):
+        return True
     normalized_upper = detected_text.strip().upper()
     if normalized_upper in _NLP_ACRONYM_FALSE_POSITIVES:
         return True
-    normalized_lower = " ".join(detected_text.strip().lower().split())
+    normalized_lower = normalized_text
     if entity_type in {"LOCATION", "ORGANIZATION"} and normalized_lower.startswith(("contactez ", "contacter ", "contact ")):
         return True
     if detected_text.strip() == normalized_lower:
         return True
     return normalized_lower in _NLP_SINGLE_TOKEN_FALSE_POSITIVES
+
+
+def _normalize_nlp_text(value: str) -> str:
+    without_accents = "".join(
+        char for char in unicodedata.normalize("NFKD", value)
+        if not unicodedata.combining(char)
+    )
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", without_accents.lower()).split())
+
+
+def _is_technical_context(text: str) -> bool:
+    if not text:
+        return False
+    return any(pattern.search(text) for pattern in _TECHNICAL_CONTEXT_PATTERNS)
