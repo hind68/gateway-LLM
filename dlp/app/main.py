@@ -1,4 +1,5 @@
 import io
+import json
 import os
 import tempfile
 from contextlib import asynccontextmanager
@@ -162,7 +163,7 @@ def run_pipeline(text: str, user_id: str | None = None, banned_words: list[str] 
     # Let the built-in helper format the response with the decision, status, and severity!
     return _success_response(text, final_matches, user_id=user_id)
 
-def run_pipeline_for_segments(known_text: str, free_text: str, user_id: str | None = None, filename: str | None = None) -> dict:
+def run_pipeline_for_segments(known_text: str, free_text: str, user_id: str | None = None, filename: str | None = None, banned_words: list[str] | None = None) -> dict:
     """
     Like run_pipeline, but for input already split into a "known PII
     shape" segment and a "free text" segment (see structured_routing.py
@@ -180,7 +181,7 @@ def run_pipeline_for_segments(known_text: str, free_text: str, user_id: str | No
         # CSV/XLSX, and even those if no column header matched) - avoid
         # a spurious leading "\n" that would shift every offset by one
         # for no reason.
-        return run_pipeline(free_text, user_id=user_id, filename=filename)
+        return run_pipeline(free_text, user_id=user_id, banned_words=banned_words)
 
     combined_text = known_text + "\n" + free_text
     if len(combined_text) > DLP_MAX_TEXT_LENGTH:
@@ -192,7 +193,7 @@ def run_pipeline_for_segments(known_text: str, free_text: str, user_id: str | No
     known_matches = run_regex_detectors(known_text)
 
     lang = detect_language(free_text)
-    free_matches = run_regex_detectors(free_text) + detect_with_presidio(free_text, language=lang)
+    free_matches = run_regex_detectors(free_text) + detect_with_presidio(free_text, language=lang) + detect_banned_words(combined_text, banned_words or [])
     offset = len(known_text) + 1  # +1 for the "\n" joiner above
     for m in free_matches:
         m["start"] += offset
@@ -393,16 +394,24 @@ def analyse_message(
     text: str | None = Form(None),
     files: list[UploadFile] = File([]),
     user_id: str | None = Form(None),
+    banned_words: str | None = Form(None),
 ):
     if not text and not files:
         raise HTTPException(status_code=400, detail="Provide text, at least one file, or both.")
     if len(files) > DLP_MAX_ATTACHMENTS:
         raise HTTPException(status_code=413, detail=f"Too many attachments. Maximum is {DLP_MAX_ATTACHMENTS}.")
 
+    try:
+        parsed_banned_words = json.loads(banned_words) if banned_words else []
+        if not isinstance(parsed_banned_words, list):
+            parsed_banned_words = []
+    except (TypeError, ValueError):
+        parsed_banned_words = []
+
     results = []
 
     if text:
-        results.append({"source": "message", **run_pipeline(text, user_id=user_id)})
+        results.append({"source": "message", **run_pipeline(text, user_id=user_id, banned_words=parsed_banned_words)})
 
     for file in files:
         source = file.filename or "unknown"
@@ -424,7 +433,7 @@ def analyse_message(
 
         try:
             known_text, free_text = _extract_known_free_text(source, tmp_path)
-            result = run_pipeline_for_segments(known_text, free_text, user_id=user_id)
+            result = run_pipeline_for_segments(known_text, free_text, user_id=user_id, banned_words=parsed_banned_words)
         except HTTPException:
             results.append({"source": source, **_error_response("EXTRACTION_FAILED", "The content could not be safely analysed.")})
             continue

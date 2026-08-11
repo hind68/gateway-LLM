@@ -94,7 +94,7 @@ public class ConversationController {
         return conversationService.streamMessage(id, request, jwt);
     }
 
-    @PostMapping(value = "/conversations/{id}/messages/stream-with-files", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/conversations/{id}/messages/stream-with-files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamConversationMessageWithFiles(
             @PathVariable Long id,
             @RequestPart(required = false, name = "content") String content,

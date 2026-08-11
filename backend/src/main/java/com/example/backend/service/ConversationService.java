@@ -288,25 +288,20 @@ public class ConversationService {
         return emitter;
     }
 
+    @Transactional
     public SseEmitter streamMessageWithFiles(Long conversationId, String content, List<MultipartFile> files, Jwt jwt) {
         SseEmitter emitter = new SseEmitter(0L);
         try {
             Conversation conversation = ownedConversation(conversationId, jwt);
             UUID userId = currentUserService.keycloakId(jwt);
             Utilisateur authenticatedUser = currentUserService.resolve(jwt);
-            List<String> bannedWords = chatValidationService.getBannedWords(userId, currentUserService.roles(jwt));
-            List<DlpAttachmentAnalysis> analyses = files == null ? List.of() : files.stream()
-                    .filter(file -> file != null && !file.isEmpty())
-                    .map(file -> dlpService.analyseAttachment(file, userId, authenticatedUser.getExternalId(), bannedWords))
-                    .toList();
-            StringBuilder prompt = new StringBuilder(content == null ? "" : content);
-            for (DlpAttachmentAnalysis analysis : analyses) {
-                prompt.append("\n\n[Fichier: ").append(analysis.filename()).append("]\n")
-                        .append(analysis.maskedText() == null ? "" : analysis.maskedText());
-            }
-            StreamPreparation preparation = prepareStream(conversationId, new SendMessageRequest(prompt.toString()), jwt);
+            List<String> roles = currentUserService.roles(jwt);
+            chatValidationService.validateLlmAccess(userId, conversation.getModele().getAliasInterne(), roles);
+            List<String> bannedWords = chatValidationService.getBannedWords(userId, roles);
+            DlpSafeMessage safeMessage = dlpService.safeMessageForLlm(content, files, userId, authenticatedUser.getExternalId(), bannedWords);
+            StreamPreparation preparation = prepareStreamWithSafeContent(conversationId, content, safeMessage, jwt);
             Message userMessage = messageRepository.findById(preparation.userMessage().id()).orElseThrow();
-            List<AttachmentMetadata> attachments = attachmentService.store(userMessage, files, analyses);
+            List<AttachmentMetadata> attachments = attachmentService.store(userMessage, files, safeMessage.attachments());
             userMessage.setAttachmentMetadataJson(serializeAttachmentMetadata(attachments));
             MessageResponse userResponse = withAttachments(preparation.userMessage(), attachments);
             trySend(emitter, "message", userResponse);
@@ -320,6 +315,21 @@ public class ConversationService {
             emitter.complete();
         }
         return emitter;
+    }
+
+    @Transactional
+    private StreamPreparation prepareStreamWithSafeContent(Long conversationId, String originalContent, DlpSafeMessage safeMessage, Jwt jwt) {
+        Conversation conversation = ownedConversation(conversationId, jwt);
+        if (conversation.getStatut() != StatutConversation.ACTIVE) throw new ResponseStatusException(BAD_REQUEST, "Conversation is archived");
+        ModeleLlm generationModel = conversation.getModele();
+        String persistedContent = originalContent == null || originalContent.isBlank() ? safeMessage.persistedContent() : originalContent.trim();
+        int nextOrder = messageRepository.findMaxOrdre(conversation) + 1;
+        Message userMessage = messageRepository.save(new Message(conversation, RoleMessage.USER, nextOrder, StatutMessage.TERMINE, persistedContent, null));
+        if ("Nouvelle conversation".equals(conversation.getTitre())) conversation.rename(titleFrom(persistedContent));
+        Message assistantMessage = messageRepository.save(new Message(conversation, RoleMessage.ASSISTANT, nextOrder + 1, StatutMessage.EN_COURS, "", userMessage, generationModel));
+        conversation.touchLastMessageAt(Instant.now());
+        List<LiteLlmMessage> context = buildContext(conversation, userMessage, safeMessage.safePrompt(), List.of());
+        return new StreamPreparation(generationModel.getAliasInterne(), assistantMessage.getId(), toMessageResponse(userMessage), toMessageResponse(assistantMessage), context);
     }
 
     private void streamPrepared(SseEmitter emitter, StreamPreparation preparation) {
