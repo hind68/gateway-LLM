@@ -583,6 +583,11 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
     }
   }, [overviewMessages])
 
+  function chartScaleClass(value, max, prefix) {
+    const scale = Math.max(1, Math.min(10, Math.ceil((value / Math.max(1, max)) * 10)))
+    return `${prefix}--${scale}`
+  }
+
   async function handleSelectUser(user) {
     setSelectedUser(user)
     if (user.keycloakManaged) {
@@ -847,8 +852,7 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
                       <div className="admin-bar-value">{item.count}</div>
                       <div className="admin-bar-track">
                         <div
-                          className="admin-bar-fill"
-                          style={{ height: `${Math.max(6, (item.count / overviewChartData.maxDaily) * 100)}%` }}
+                          className={`admin-bar-fill ${chartScaleClass(item.count, overviewChartData.maxDaily, 'admin-bar-height')}`}
                           title={`${item.count} incident${item.count > 1 ? 's' : ''}`}
                         />
                       </div>
@@ -880,8 +884,7 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
                         </div>
                         <div className="admin-category-track">
                           <div
-                            className="admin-category-fill"
-                            style={{ width: `${Math.max(4, (item.count / overviewChartData.maxCategory) * 100)}%` }}
+                            className={`admin-category-fill ${chartScaleClass(item.count, overviewChartData.maxCategory, 'admin-category-width')}`}
                           />
                         </div>
                       </div>
@@ -1293,7 +1296,7 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
               </div>
 
               <div className="admin-user-search">
-                <span className="admin-search-icon" aria-hidden="true">⌕</span>
+                <span className="admin-search-icon" aria-hidden="true" />
                 <input
                   type="text"
                   value={userSearchQuery}
@@ -1466,11 +1469,12 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
                           </option>
                         ))}
                       </select>
-                      <button type="submit" className="admin-submit-btn">
+                      <button type="submit" className="admin-submit-btn" disabled={!isUuid(selectedUser.externalId)} title={!isUuid(selectedUser.externalId) ? 'Un UUID Keycloak est requis pour gérer les restrictions.' : undefined}>
                         Restreindre
                       </button>
                     </form>
 
+                    {!isUuid(selectedUser.externalId) && <p className="admin-muted-state">Les restrictions personnalisées nécessitent l’UUID Keycloak du compte.</p>}
                     <div className="admin-user-chip-list">
                       {userDetailLoading ? <span className="admin-muted-state">Chargement…</span> : userDetailError ? <span className="admin-error-state">{userDetailError}</span> : userRestrictions.length === 0 ? (
                         <span className="admin-muted-state">Aucune restriction personnalisée.</span>
@@ -1502,11 +1506,12 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
                         placeholder="Ajouter un mot ou une expression..."
                         className="admin-input"
                       />
-                      <button type="submit" className="admin-submit-btn">
+                      <button type="submit" className="admin-submit-btn" disabled={!isUuid(selectedUser.externalId)} title={!isUuid(selectedUser.externalId) ? 'Un UUID Keycloak est requis pour gérer les mots bannis.' : undefined}>
                         Ajouter
                       </button>
                     </form>
 
+                    {!isUuid(selectedUser.externalId) && <p className="admin-muted-state">Les mots bannis personnalisés nécessitent l’UUID Keycloak du compte.</p>}
                     <div className="admin-user-chip-list">
                       {userDetailLoading ? <span className="admin-muted-state">Chargement…</span> : userDetailError ? <span className="admin-error-state">{userDetailError}</span> : userBannedWords.length === 0 ? (
                         <span className="admin-muted-state">Aucun mot banni spécifique.</span>
