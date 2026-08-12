@@ -31,7 +31,11 @@ import {
   fetchAdminModels,
   fetchAdminProviders,
   createAdminProvider,
+  updateAdminProvider,
+  deleteAdminProvider,
   createAdminModel,
+  updateAdminModel,
+  deleteAdminModel,
   setAdminModelStatus,
   testAdminModel,
   fetchSecurityMetrics
@@ -44,7 +48,7 @@ import ConfirmDialog from '../../components/common/ConfirmDialog'
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const isUuid = (value) => UUID_PATTERN.test(String(value || ''))
 
-export default function AdminDashboard({ onError, onNotice, onClose }) {
+export default function AdminDashboard({ onError, onNotice }) {
   const keycloak = useContext(AuthContext)
   const token = keycloak?.token
 
@@ -74,8 +78,9 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
   const [availableModels, setAvailableModels] = useState([])
   const [adminModels, setAdminModels] = useState([])
   const [adminProviders, setAdminProviders] = useState([])
-  const [newProvider, setNewProvider] = useState({ code: '', name: '' })
-  const [newAdminModel, setNewAdminModel] = useState({ providerId: '', alias: '', providerModel: '', displayName: '' })
+  const [newProvider, setNewProvider] = useState({ code: '', name: '', status: 'ACTIF' })
+  const [editingProviderId, setEditingProviderId] = useState(null)
+  const [newAdminModel, setNewAdminModel] = useState({ providerId: '', alias: '', providerModel: '', displayName: '', description: '', logoUrl: '' })
   const [securityMetrics, setSecurityMetrics] = useState(null)
   const [overviewMessages, setOverviewMessages] = useState([])
   const [keycloakRoles, setKeycloakRoles] = useState([])
@@ -112,6 +117,7 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
   const [userDetailError, setUserDetailError] = useState('')
   const [requestState, setRequestState] = useState({})
   const [modelConfigOpen, setModelConfigOpen] = useState(false)
+  const [editingModelId, setEditingModelId] = useState(null)
 
   // The loaders are stable component-local commands; this effect intentionally runs once per token.
   /* eslint-disable react-hooks/exhaustive-deps */
@@ -205,6 +211,18 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
 
   const isLoading = (key) => requestState[key]?.status === 'loading'
   const requestError = (key) => requestState[key]?.error || ''
+
+  function userLabel(value) {
+    const raw = String(value || '')
+    const user = users.find((item) => String(item.externalId || item.id) === raw)
+    return user?.nomAffichage || raw || 'Inconnu'
+  }
+
+  function modelLabel(value) {
+    const raw = String(value || '')
+    const model = [...adminModels, ...availableModels].find((item) => String(item.aliasInterne || item.alias) === raw)
+    return model?.nomAffichage || model?.displayName || raw || 'Inconnu'
+  }
   async function loadAuditLogs() {
     setRequestStatus('audit', 'loading')
     setAuditLoading(true)
@@ -310,6 +328,8 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
       alias: model.alias,
       providerModel: '',
       displayName: model.displayName,
+      description: model.description || '',
+      logoUrl: model.logoUrl || '',
     }))
 
     setActiveTab('models')
@@ -337,8 +357,41 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
     event.preventDefault()
     try {
       await createAdminProvider(newProvider, token)
-      setNewProvider({ code: '', name: '' })
+      setNewProvider({ code: '', name: '', status: 'ACTIF' })
       onNotice('Fournisseur ajouté')
+      loadAdminProviders()
+    } catch (err) { onError(err.message) }
+  }
+
+  async function handleSaveProvider(event) {
+    event.preventDefault()
+    try {
+      await updateAdminProvider(editingProviderId, newProvider, token)
+      setEditingProviderId(null)
+      setNewProvider({ code: '', name: '', status: 'ACTIF' })
+      onNotice('Fournisseur mis à jour')
+      loadAdminProviders()
+    } catch (err) { onError(err.message) }
+  }
+
+  function editProvider(provider) {
+    setEditingProviderId(provider.id)
+    setNewProvider({ code: provider.code || '', name: provider.nom || provider.name || '', status: provider.statut || 'ACTIF' })
+  }
+
+  async function handleToggleProvider(provider) {
+    try {
+      await updateAdminProvider(provider.id, { status: provider.statut === 'ACTIF' ? 'INACTIF' : 'ACTIF' }, token)
+      onNotice(provider.statut === 'ACTIF' ? 'Fournisseur désactivé' : 'Fournisseur activé')
+      loadAdminProviders()
+      loadAdminModels()
+    } catch (err) { onError(err.message) }
+  }
+
+  async function handleDeleteProvider(provider) {
+    try {
+      await deleteAdminProvider(provider.id, token)
+      onNotice('Fournisseur supprimé')
       loadAdminProviders()
     } catch (err) { onError(err.message) }
   }
@@ -588,6 +641,38 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
     return `${prefix}--${scale}`
   }
 
+  async function handleSaveAdminModel(event) {
+    event.preventDefault()
+    try {
+      await updateAdminModel(editingModelId, newAdminModel, token)
+      onNotice('Modèle mis à jour')
+      setEditingModelId(null)
+      setNewAdminModel({ providerId: '', alias: '', providerModel: '', displayName: '', description: '', logoUrl: '' })
+      loadAdminModels()
+    } catch (err) { onError(err.message) }
+  }
+
+  async function handleDeleteAdminModel(model) {
+    try {
+      await deleteAdminModel(model.id, token)
+      onNotice('Modèle supprimé')
+      if (editingModelId === model.id) {
+        setEditingModelId(null)
+        setModelConfigOpen(false)
+      }
+      loadAdminModels()
+      loadAdminProviders()
+    } catch (err) { onError(err.message) }
+  }
+
+  function editAdminModel(model) {
+    setEditingModelId(model.id)
+    setNewAdminModel({ providerId: String(model.providerId || ''), alias: model.aliasInterne, providerModel: model.nomModeleProvider || '', displayName: model.nomAffichage || '', description: model.description || '', logoUrl: model.logoUrl || '' })
+    setModelConfigOpen(true)
+    setActiveTab('models')
+    window.requestAnimationFrame(() => document.querySelector('.admin-model-create-card--model')?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+  }
+
   async function handleSelectUser(user) {
     setSelectedUser(user)
     if (user.keycloakManaged) {
@@ -726,7 +811,6 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
             <h1>Administration</h1>
             <p>Gérez les utilisateurs, les modèles et la sécurité de Synapse.</p>
           </div>
-          {onClose && <button type="button" className="admin-back-button admin-page-back-button" onClick={onClose}>Retour au chat</button>}
         </div>
 
         <nav className="admin-navigation">
@@ -788,26 +872,26 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
         {activeTab === 'overview' && (
           <>
             <div className="admin-stat-grid">
-              <div className="admin-stat-card">
+              <button type="button" className="admin-stat-card" onClick={() => setActiveTab('users')}>
                 <span>Utilisateurs</span>
                 <strong><MetricValue loading={isLoading('users')} error={requestError('users')} value={users.length} /></strong>
                 <small>Comptes connus</small>
-              </div>
-              <div className="admin-stat-card">
+              </button>
+              <button type="button" className="admin-stat-card" onClick={() => setActiveTab('models')}>
                 <span>Modèles actifs</span>
                 <strong><MetricValue loading={isLoading('models')} error={requestError('models')} value={adminModels.filter(model => model.statut === 'ACTIF').length} /></strong>
                 <small>Sur {adminModels.length} configurés</small>
-              </div>
-              <div className="admin-stat-card">
+              </button>
+              <button type="button" className="admin-stat-card" onClick={() => { setActiveTab('general'); window.requestAnimationFrame(() => document.querySelector('.admin-patterns-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' })) }}>
                 <span>Patterns DLP</span>
                 <strong><MetricValue loading={isLoading('patterns')} error={requestError('patterns')} value={patterns.length} /></strong>
                 <small>{patterns.filter(item => item.enabled !== false).length} actifs</small>
-              </div>
-              <div className="admin-stat-card">
+              </button>
+              <button type="button" className="admin-stat-card" onClick={() => { setActiveTab('general'); window.requestAnimationFrame(() => document.querySelector('.admin-global-words-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' })) }}>
                 <span>Mots bannis</span>
                 <strong><MetricValue loading={isLoading('globalWords')} error={requestError('globalWords')} value={globalWords.length} /></strong>
                 <small>Règles globales</small>
-              </div>
+              </button>
             </div>
 
             <div className="admin-card admin-security-summary">
@@ -894,32 +978,6 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
               </div>
             </div>
 
-            <div className="admin-card">
-              <div className="admin-card-heading-row">
-                <div>
-                  <span className="admin-card-kicker">ACTIONS RAPIDES</span>
-                  <h2 className="admin-section-title">Accès direct</h2>
-                </div>
-              </div>
-              <div className="admin-quick-actions">
-                <button type="button" onClick={() => setActiveTab('users')}>
-                  <strong>Utilisateurs</strong>
-                  <span>Gérer les comptes et rôles Keycloak</span>
-                </button>
-                <button type="button" onClick={() => setActiveTab('models')}>
-                  <strong>Modèles</strong>
-                  <span>Ajouter, tester ou désactiver un modèle</span>
-                </button>
-                <button type="button" onClick={() => setActiveTab('general')}>
-                  <strong>Sécurité</strong>
-                  <span>Configurer mots bannis et patterns DLP</span>
-                </button>
-                <button type="button" onClick={() => setActiveTab('audit')}>
-                  <strong>Journal d'audit</strong>
-                  <span>Consulter les changements et incidents</span>
-                </button>
-              </div>
-            </div>
           </>
         )}
 
@@ -945,7 +1003,7 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
                   <h2 className="admin-section-title">Mots bannis</h2>
                 </div>
               </div>
-              <form onSubmit={handleAddGlobalWord} className="admin-form">
+              <form onSubmit={handleAddGlobalWord} className="admin-form admin-global-words-card">
                 <input type="text" value={newWord} onChange={(e) => setNewWord(e.target.value)} placeholder="Ajouter un mot ou une expression..." className="admin-input" />
                 <button type="submit" className="admin-submit-btn">Ajouter</button>
               </form>
@@ -971,7 +1029,7 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
                 </div>
                 <span className="admin-count-badge">{patterns.length} règles</span>
               </div>
-              <form onSubmit={handleAddPattern} className="admin-form admin-pattern-form">
+              <form onSubmit={handleAddPattern} className="admin-form admin-pattern-form admin-patterns-card">
                 <input type="text" value={newPatternData.name} onChange={(e) => setNewPatternData({...newPatternData, name: e.target.value})} placeholder="Nom" className="admin-input" required />
                 <input type="text" value={newPatternData.type} onChange={(e) => setNewPatternData({...newPatternData, type: e.target.value})} placeholder="Type" className="admin-input" required />
                 <input type="text" value={newPatternData.pattern} onChange={(e) => setNewPatternData({...newPatternData, pattern: e.target.value})} placeholder="Expression régulière" className="admin-input admin-pattern-input" required />
@@ -1042,7 +1100,7 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
                     Déclarez un nouveau fournisseur avant d&apos;y associer ses modèles.
                   </p>
 
-                  <form onSubmit={handleCreateProvider} className="admin-form admin-model-form">
+                  <form onSubmit={editingProviderId ? handleSaveProvider : handleCreateProvider} className="admin-form admin-model-form">
                     <input
                       className="admin-input"
                       placeholder="Code fournisseur"
@@ -1057,9 +1115,14 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
                       onChange={e => setNewProvider({ ...newProvider, name: e.target.value })}
                       required
                     />
+                    <select className="admin-input" value={newProvider.status} onChange={e => setNewProvider({ ...newProvider, status: e.target.value })}>
+                      <option value="ACTIF">Actif</option>
+                      <option value="INACTIF">Inactif</option>
+                    </select>
                     <button className="admin-submit-btn" type="submit">
-                      Ajouter le fournisseur
+                      {editingProviderId ? 'Enregistrer le fournisseur' : 'Ajouter le fournisseur'}
                     </button>
+                    {editingProviderId && <button type="button" className="admin-secondary-btn" onClick={() => { setEditingProviderId(null); setNewProvider({ code: '', name: '', status: 'ACTIF' }) }}>Annuler</button>}
                   </form>
                 </div>
 
@@ -1073,7 +1136,7 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
                   <button type="button" className="admin-secondary-btn admin-config-toggle" aria-expanded={modelConfigOpen} onClick={() => setModelConfigOpen((current) => !current)}>
                     {modelConfigOpen ? 'Masquer le formulaire' : 'Ouvrir la configuration'}
                   </button>
-                  {modelConfigOpen && <form onSubmit={handleCreateAdminModel} className="admin-form admin-model-form">
+                  {modelConfigOpen && <form onSubmit={editingModelId ? handleSaveAdminModel : handleCreateAdminModel} className="admin-form admin-model-form">
                     <select
                       className="admin-input"
                       value={newAdminModel.providerId}
@@ -1089,6 +1152,7 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
                       className="admin-input"
                       placeholder="Alias interne (ex. secure-groq)"
                       value={newAdminModel.alias}
+                      disabled={Boolean(editingModelId)}
                       onChange={e => setNewAdminModel({ ...newAdminModel, alias: e.target.value })}
                       required
                     />
@@ -1106,11 +1170,40 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
                       onChange={e => setNewAdminModel({ ...newAdminModel, displayName: e.target.value })}
                       required
                     />
+                    <textarea className="admin-input" placeholder="Description" value={newAdminModel.description} onChange={e => setNewAdminModel({ ...newAdminModel, description: e.target.value })} />
+                    <input type="url" className="admin-input" placeholder="URL du logo (https://...)" value={newAdminModel.logoUrl} onChange={e => setNewAdminModel({ ...newAdminModel, logoUrl: e.target.value })} />
                     <button className="admin-submit-btn" type="submit">
                       Enregistrer le modèle
                     </button>
                   </form>}
                 </div>
+              </div>
+
+              <div className="admin-provider-list" aria-label="Fournisseurs configurés">
+                {isLoading('providers') ? (
+                  <div className="admin-loading-state">Chargement des fournisseurs…</div>
+                ) : requestError('providers') ? (
+                  <div className="admin-error-state">{requestError('providers')}</div>
+                ) : adminProviders.length === 0 ? (
+                  <div className="admin-empty-state">Aucun fournisseur configuré.</div>
+                ) : adminProviders.map((provider) => (
+                  <article className="admin-provider-row" key={provider.id}>
+                    <div>
+                      <strong>{provider.nom || provider.name || provider.code}</strong>
+                      <span className="admin-meta-line">{provider.code}</span>
+                    </div>
+                    <span className={`admin-status-badge ${provider.statut === 'ACTIF' ? 'active' : 'inactive'}`}>
+                      {provider.statut === 'ACTIF' ? 'Actif' : 'Inactif'}
+                    </span>
+                    <div className="admin-row-actions">
+                      <button type="button" className="admin-secondary-btn" onClick={() => editProvider(provider)}>Modifier</button>
+                      <button type="button" className="admin-secondary-btn" onClick={() => provider.statut === 'ACTIF' ? requestConfirmation({ title: 'Désactiver ce fournisseur ?', message: 'Ses modèles ne seront plus disponibles dans Synapse.', onConfirm: () => handleToggleProvider(provider) }) : handleToggleProvider(provider)}>
+                        {provider.statut === 'ACTIF' ? 'Désactiver' : 'Activer'}
+                      </button>
+                      <button type="button" className="admin-delete-btn" onClick={() => requestConfirmation({ title: 'Supprimer ce fournisseur ?', message: 'La suppression est refusée si des modèles y sont encore associés.', onConfirm: () => handleDeleteProvider(provider) })}>Supprimer</button>
+                    </div>
+                  </article>
+                ))}
               </div>
             </div>
 
@@ -1147,6 +1240,7 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
                       <div className={`admin-model-card-visual ${meta.tone || ''}`}>
                         <ModelLogo
                           alias={model.alias}
+                          logoUrl={adminModel?.logoUrl}
                           className="admin-model-card-logo"
                           fallback={meta.initials}
                         />
@@ -1165,7 +1259,7 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
                         </div>
 
                         <p className="admin-model-description">
-                          {meta.description || 'Modèle LLM disponible dans Synapse.'}
+                          {adminModel?.description || model.description || meta.description || 'Modèle LLM disponible dans Synapse.'}
                         </p>
 
                         <div className="admin-model-identifiers">
@@ -1175,7 +1269,7 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
 
                         {adminModel && modelTestResults[adminModel.id] && (
                           <div className="admin-model-test-result" role="status">
-                            <span className={`admin-status-badge ${modelTestResults[adminModel.id].status === 'OK' ? 'active' : 'inactive'}`}>
+                            <span className={`admin-status-badge ${['OK', 'CONNECTED'].includes(modelTestResults[adminModel.id].status) ? 'active' : 'inactive'}`}>
                               Test : {modelTestResults[adminModel.id].status}
                             </span>
                             {modelTestResults[adminModel.id].latencyMs != null && <span>{modelTestResults[adminModel.id].latencyMs} ms</span>}
@@ -1200,6 +1294,8 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
                               >
                                 {adminModel.statut === 'ACTIF' ? 'Désactiver' : 'Activer'}
                               </button>
+                              <button type="button" className="admin-secondary-btn" onClick={() => editAdminModel(adminModel)}>Modifier</button>
+                              <button type="button" className="admin-delete-btn" onClick={() => requestConfirmation({ title: 'Supprimer ce modèle ?', message: 'La suppression est refusée si des conversations ou restrictions le référencent.', onConfirm: () => handleDeleteAdminModel(adminModel) })}>Supprimer</button>
                             </>
                           ) : (
                             <button
@@ -1240,6 +1336,7 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
                           <div className={`admin-model-card-visual ${meta.tone || ''}`}>
                             <ModelLogo
                               alias={model.aliasInterne}
+                              logoUrl={model.logoUrl}
                               className="admin-model-card-logo"
                               fallback={meta.initials}
                             />
@@ -1254,13 +1351,16 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
                                 {model.statut === 'ACTIF' ? 'Actif' : 'Inactif'}
                               </span>
                             </div>
+                            <p className="admin-model-description">
+                              {model.description || meta.description || 'Modèle LLM administré dans Synapse.'}
+                            </p>
                             <div className="admin-model-identifiers">
                               <span>{model.aliasInterne}</span>
                               <span>Non exposé actuellement</span>
                             </div>
                             {modelTestResults[model.id] && (
                               <div className="admin-model-test-result" role="status">
-                                <span className={`admin-status-badge ${modelTestResults[model.id].status === 'OK' ? 'active' : 'inactive'}`}>
+                                <span className={`admin-status-badge ${['OK', 'CONNECTED'].includes(modelTestResults[model.id].status) ? 'active' : 'inactive'}`}>
                                   Test : {modelTestResults[model.id].status}
                                 </span>
                                 {modelTestResults[model.id].latencyMs != null && <span>{modelTestResults[model.id].latencyMs} ms</span>}
@@ -1272,6 +1372,7 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
                               <button type="button" className="admin-submit-btn" onClick={() => model.statut === 'ACTIF' ? requestConfirmation({ title: 'Désactiver ce modèle ?', message: 'Le modèle ne sera plus disponible dans Synapse.', onConfirm: () => handleToggleAdminModel(model) }) : handleToggleAdminModel(model)}>
                                 {model.statut === 'ACTIF' ? 'Désactiver' : 'Activer'}
                               </button>
+                              <button type="button" className="admin-delete-btn" onClick={() => requestConfirmation({ title: 'Supprimer ce modèle ?', message: 'La suppression est refusée si des conversations ou restrictions le référencent.', onConfirm: () => handleDeleteAdminModel(model) })}>Supprimer</button>
                             </div>
                           </div>
                         </article>
@@ -1648,7 +1749,7 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
                       <span><AuditBadge value={log.action} /> {log.entityName}</span>
                       <span className="audit-meta">{new Date(log.timestamp).toLocaleString('fr-FR')}</span>
                     </button>
-                    {expandedAuditIds.has(log.id) && <div className="audit-row-details"><span>Identifiant : {log.entityId || '—'}</span><span>Effectué par : {log.performedBy || '—'}</span></div>}
+                    {expandedAuditIds.has(log.id) && <div className="audit-row-details"><span>Identifiant : {log.entityName === 'LLM_MODEL' ? modelLabel(log.entityId) : (log.entityId || '—')}</span><span>Effectué par : {userLabel(log.performedBy)}</span></div>}
                   </li>
                 ))}
                 </ul>
@@ -1674,7 +1775,7 @@ export default function AdminDashboard({ onError, onNotice, onClose }) {
                         <span className="audit-meta">{new Date(msg.timestamp).toLocaleString('fr-FR')}</span>
                       </button>
                       {expandedAuditIds.has(msg.id) && <div className="audit-content">
-                        <span className="audit-meta">Utilisateur : {msg.userKeycloakId} · Gravité : {msg.highestSeverity || 'inconnue'} · Détections : {msg.detectionCount ?? 0} · Statut : {msg.requestStatus || msg.action}</span>
+                        <span className="audit-meta">Utilisateur : {userLabel(msg.userKeycloakId)} · Gravité : {msg.highestSeverity || 'inconnue'} · Détections : {msg.detectionCount ?? 0} · Statut : {msg.requestStatus || msg.action}</span>
                         {msg.detectedTypes && <span className="audit-meta">Catégories : {msg.detectedTypes}</span>}
                         {isRevealed ? (
                           <>

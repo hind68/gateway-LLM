@@ -26,6 +26,14 @@ The current project contains:
 
 No real secret must be committed. Local secrets belong only in `.env`.
 
+Provider credentials are intentionally not managed through the admin API or stored in
+the database. The current deployment injects provider keys into LiteLLM through the
+local environment, while the backend keeps only non-secret provider/model metadata.
+The admin model screens can therefore edit aliases, display names, descriptions, logo
+URLs and statuses, but changing a provider key still requires the deployment secret
+configuration. This prevents credentials from being returned to or persisted by the
+frontend.
+
 ## Architecture
 
 ```text

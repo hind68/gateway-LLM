@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.PathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -39,6 +40,7 @@ public class AttachmentService {
     private final CurrentUserService currentUserService;
     private final Path storageRoot;
 
+    @Autowired
     public AttachmentService(
             AttachmentRepository attachmentRepository,
             DemoUserProvider demoUserProvider,
@@ -49,6 +51,15 @@ public class AttachmentService {
         this.demoUserProvider = demoUserProvider;
         this.currentUserService = currentUserService;
         this.storageRoot = Paths.get(storageDir).toAbsolutePath().normalize();
+    }
+
+    /** Compatibility constructor for non-JWT callers and existing service tests. */
+    public AttachmentService(
+            AttachmentRepository attachmentRepository,
+            DemoUserProvider demoUserProvider,
+            String storageDir
+    ) {
+        this(attachmentRepository, demoUserProvider, null, storageDir);
     }
 
     @Transactional
@@ -190,7 +201,7 @@ public class AttachmentService {
     private com.example.backend.entity.Utilisateur authenticatedUser() {
         Object principal = SecurityContextHolder.getContext().getAuthentication() == null
                 ? null : SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (principal instanceof Jwt jwt) {
+        if (principal instanceof Jwt jwt && currentUserService != null) {
             return currentUserService.resolve(jwt);
         }
         return demoUserProvider.currentUser();

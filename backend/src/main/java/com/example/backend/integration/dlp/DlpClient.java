@@ -44,7 +44,7 @@ public class DlpClient {
         try {
             return webClient.post()
                     .uri("/analyse")
-                    .contentType(MediaType.APPLICATION_JSON)
+                    .contentType(APPLICATION_JSON_UTF8)
                     .accept(APPLICATION_JSON_UTF8)
                     .bodyValue(new DlpAnalysisRequest(text, userId, bannedWords))
                     .retrieve()
@@ -60,6 +60,11 @@ public class DlpClient {
         } catch (RuntimeException exception) {
             throw new DlpUnavailableException("DLP service is unavailable", exception);
         }
+    }
+
+    /** Compatibility overload for callers that do not configure banned words. */
+    public DlpAnalysisResponse analyse(String text, String userId) {
+        return analyse(text, userId, List.of());
     }
 
     public DlpMultiSourceAnalysisResponse analyseMessage(String text, List<MultipartFile> files, String userId, List<String> bannedWords) {

@@ -62,6 +62,7 @@ public class ConversationService {
     private final ChatValidationService chatValidationService;
     private final AttachmentService attachmentService;
     private final int maxContextMessages;
+    private boolean legacyModelLookup;
 
     @Autowired
     public ConversationService(
@@ -86,6 +87,7 @@ public class ConversationService {
         this.chatValidationService = chatValidationService;
         this.attachmentService = attachmentService;
         this.maxContextMessages = maxContextMessages;
+        this.legacyModelLookup = false;
     }
 
     /** Backward-compatible constructor retained for existing unit tests and integrations. */
@@ -103,12 +105,14 @@ public class ConversationService {
         this(conversationRepository, messageRepository, modeleLlmRepository, currentUserService,
                 liteLlmService, dlpService, messagePersistenceService, chatValidationService,
                 null, maxContextMessages);
+        this.legacyModelLookup = true;
     }
 
     @Transactional
     public ConversationResponse create(@Valid CreateConversationRequest request, Jwt jwt) {
         Utilisateur user = currentUserService.resolve(jwt);
         ModeleLlm model = activeModel(request.modelAlias());
+        chatValidationService.validateLlmAccess(currentUserService.keycloakId(jwt), model.getAliasInterne(), currentUserService.roles(jwt));
         String title = normalizeTitle(request.title(), "Nouvelle conversation");
         Conversation conversation = conversationRepository.save(new Conversation(user, model, title));
         return toConversationResponse(conversation);
@@ -155,6 +159,7 @@ public class ConversationService {
     public ConversationResponse changeModel(Long id, ChangeConversationModelRequest request, Jwt jwt) {
         Conversation conversation = ownedConversation(id, jwt);
         ModeleLlm model = activeModel(request.modelAlias());
+        chatValidationService.validateLlmAccess(currentUserService.keycloakId(jwt), model.getAliasInterne(), currentUserService.roles(jwt));
         conversation.changeModel(model);
         return toConversationResponse(conversation);
     }
@@ -523,7 +528,11 @@ public class ConversationService {
     }
 
     private ModeleLlm activeModel(String modelAlias) {
-        return modeleLlmRepository.findByAliasInterneAndStatut(modelAlias, StatutModeleLlm.ACTIF)
+        if (legacyModelLookup) {
+            return modeleLlmRepository.findByAliasInterneAndStatut(modelAlias, StatutModeleLlm.ACTIF)
+                    .orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Unknown or inactive model: " + modelAlias));
+        }
+        return modeleLlmRepository.findByAliasInterneAndStatutAndFournisseur_Statut(modelAlias, StatutModeleLlm.ACTIF, com.example.backend.enums.StatutFournisseurLlm.ACTIF)
                 .orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Unknown or inactive model: " + modelAlias));
     }
 

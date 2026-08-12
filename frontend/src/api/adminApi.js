@@ -175,6 +175,18 @@ export async function fetchAdminModels(token) {
 export async function createAdminModel(payload, token) {
   return apiFetch('/admin/models', { method: 'POST', json: payload, headers: { Authorization: `Bearer ${token}` } })
 }
+export async function updateAdminModel(id, payload, token) {
+  return apiFetch(`/admin/models/${id}`, { method: 'PATCH', json: payload, headers: { Authorization: `Bearer ${token}` } })
+}
+export async function deleteAdminModel(id, token) {
+  return apiFetch(`/admin/models/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
+}
+export async function updateAdminProvider(id, payload, token) {
+  return apiFetch(`/admin/models/providers/${id}`, { method: 'PATCH', json: payload, headers: { Authorization: `Bearer ${token}` } })
+}
+export async function deleteAdminProvider(id, token) {
+  return apiFetch(`/admin/models/providers/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
+}
 export async function setAdminModelStatus(id, status, token) {
   return apiFetch(`/admin/models/${id}/status?status=${status}`, { method: 'PATCH', headers: { Authorization: `Bearer ${token}` } })
 }

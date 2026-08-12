@@ -1,6 +1,6 @@
 import { modelProviderName } from '../../../utils/modelMetadata'
 
-export default function ModelSelector({ activeModel, disabled, isOpen, models, onToggle, onSelect }) {
+export default function ModelSelector({ activeModel, activeModelAlias, disabled, isOpen, models, onToggle, onSelect }) {
   return (
     <div className="model-switcher" data-menu-root>
       <button
@@ -9,7 +9,7 @@ export default function ModelSelector({ activeModel, disabled, isOpen, models, o
         onClick={onToggle}
         disabled={disabled}
       >
-        <span>{activeModel?.displayName || 'Modèle'}</span>
+        <span>{activeModel?.displayName || (activeModelAlias ? `Modèle indisponible (${activeModelAlias})` : 'Modèle')}</span>
         <span className="model-arrow" aria-hidden="true"></span>
       </button>
       {isOpen && (

@@ -13,4 +13,16 @@ public record DlpAnalysisResponse(
         List<DlpMatch> matches,
         List<DlpError> errors
 ) {
+    /** Compatibility constructor for the original DLP response shape. */
+    public DlpAnalysisResponse(
+            String status,
+            DlpDecision decision,
+            Boolean flagged,
+            String highestSeverity,
+            String maskedText,
+            List<DlpMatch> matches,
+            List<DlpError> errors
+    ) {
+        this(status, decision, flagged, highestSeverity, null, maskedText, matches, errors);
+    }
 }

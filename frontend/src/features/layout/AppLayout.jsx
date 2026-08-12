@@ -239,6 +239,7 @@ export default function AppLayout({
             <div className="header-controls">
               <ModelSelector
                 activeModel={models.activeModel}
+                activeModelAlias={models.activeModelAlias}
                 disabled={status.isGenerating || models.isLoadingModels}
                 isOpen={layout.isModelMenuOpen}
                 models={models.models}
@@ -271,7 +272,6 @@ export default function AppLayout({
           <AdminDashboard
             onError={admin.onError}
             onNotice={admin.onNotice}
-            onClose={() => admin.setShowAdminDashboard(false)}
           />
         ) : (
           <>

@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { modelLogoSrc } from '../../../utils/modelMetadata'
 
-export default function ModelLogo({ alias, className = '', fallback = '' }) {
-  const logo = modelLogoSrc(alias)
+export default function ModelLogo({ alias, logoUrl = '', className = '', fallback = '' }) {
+  const logo = logoUrl || modelLogoSrc(alias)
   const [hasError, setHasError] = useState(false)
 
   if (!logo || hasError) {
@@ -14,17 +14,11 @@ export default function ModelLogo({ alias, className = '', fallback = '' }) {
   }
 
   return (
-    <span className={className}>
+    <span className={`${className} model-logo-image`}>
       <img
         src={logo}
         alt=""
         onError={() => setHasError(true)}
-        style={{
-          display: 'block',
-          width: '100%',
-          height: '100%',
-          objectFit: 'contain',
-        }}
       />
     </span>
   )

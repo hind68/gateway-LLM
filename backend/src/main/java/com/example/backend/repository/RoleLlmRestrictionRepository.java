@@ -8,4 +8,5 @@ import java.util.List;
 @Repository
 public interface RoleLlmRestrictionRepository extends JpaRepository<RoleLlmRestriction, Long> {
     List<RoleLlmRestriction> findByRoleName(String roleName);
+    long countByLlmModelAlias(String llmModelAlias);
 }

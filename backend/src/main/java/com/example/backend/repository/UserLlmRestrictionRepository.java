@@ -10,4 +10,5 @@ import java.util.UUID;
 public interface UserLlmRestrictionRepository extends JpaRepository<UserLlmRestriction, Long> {
     List<UserLlmRestriction> findByUserKeycloakId(UUID userKeycloakId);
     boolean existsByUserKeycloakIdAndLlmModelAlias(UUID userKeycloakId, String llmModelAlias);
+    long countByLlmModelAlias(String llmModelAlias);
 }

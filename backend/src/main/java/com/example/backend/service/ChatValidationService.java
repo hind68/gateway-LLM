@@ -53,6 +53,18 @@ public class ChatValidationService {
         }
     }
 
+    public boolean isLlmAllowed(UUID userId, String llmModelAlias, Collection<String> roles) {
+        if (roles != null && roles.stream().map(String::toUpperCase).anyMatch("ADMIN"::equals)) {
+            return true;
+        }
+        try {
+            validateLlmAccess(userId, llmModelAlias, roles);
+            return true;
+        } catch (ResponseStatusException denied) {
+            return false;
+        }
+    }
+
     public List<String> getBannedWords(UUID userId) {
         return getBannedWords(userId, List.of());
     }

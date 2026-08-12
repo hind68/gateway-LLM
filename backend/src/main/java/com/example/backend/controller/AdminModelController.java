@@ -9,9 +9,13 @@ import com.example.backend.integration.litellm.LiteLlmService;
 import com.example.backend.repository.AuditLogRepository;
 import com.example.backend.repository.FournisseurLlmRepository;
 import com.example.backend.repository.ModeleLlmRepository;
+import com.example.backend.repository.ConversationRepository;
+import com.example.backend.repository.UserLlmRestrictionRepository;
+import com.example.backend.repository.RoleLlmRestrictionRepository;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.net.URI;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -28,17 +32,26 @@ public class AdminModelController {
     private final ModeleLlmRepository models;
     private final AuditLogRepository audits;
     private final LiteLlmService liteLlm;
+    private final ConversationRepository conversations;
+    private final UserLlmRestrictionRepository userRestrictions;
+    private final RoleLlmRestrictionRepository roleRestrictions;
 
     public AdminModelController(
             FournisseurLlmRepository providers,
             ModeleLlmRepository models,
             AuditLogRepository audits,
-            LiteLlmService liteLlm
+            LiteLlmService liteLlm,
+            ConversationRepository conversations,
+            UserLlmRestrictionRepository userRestrictions,
+            RoleLlmRestrictionRepository roleRestrictions
     ) {
         this.providers = providers;
         this.models = models;
         this.audits = audits;
         this.liteLlm = liteLlm;
+        this.conversations = conversations;
+        this.userRestrictions = userRestrictions;
+        this.roleRestrictions = roleRestrictions;
     }
 
     @GetMapping("/providers")
@@ -76,6 +89,27 @@ public class AdminModelController {
         audit("CREATE", "LLM_PROVIDER", saved.getCode(), auth);
 
         return toProviderResponse(saved);
+    }
+
+    @PatchMapping("/providers/{id}")
+    @Transactional
+    public AdminProviderResponse updateProvider(@PathVariable Long id, @RequestBody Map<String, String> body, JwtAuthenticationToken auth) {
+        FournisseurLlm provider = providers.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Provider not found"));
+        if (body.containsKey("code")) provider.setCode(required(body, "code"));
+        if (body.containsKey("name")) provider.setNom(required(body, "name"));
+        if (body.containsKey("status")) provider.setStatut(status(body.get("status"), provider.getStatut()));
+        providers.save(provider);
+        audit("UPDATE", "LLM_PROVIDER", provider.getCode(), auth);
+        return toProviderResponse(provider);
+    }
+
+    @DeleteMapping("/providers/{id}")
+    @Transactional
+    public void deleteProvider(@PathVariable Long id, JwtAuthenticationToken auth) {
+        FournisseurLlm provider = providers.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Provider not found"));
+        if (!provider.getModeles().isEmpty()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Provider has configured models and cannot be deleted");
+        providers.delete(provider);
+        audit("DELETE", "LLM_PROVIDER", provider.getCode(), auth);
     }
 
     @PatchMapping("/providers/{id}/status")
@@ -122,12 +156,42 @@ public class AdminModelController {
                 required(body, "displayName"),
                 status(body.get("status"), StatutModeleLlm.ACTIF)
         );
+        model.setDescription(body.get("description"));
+        model.setLogoUrl(safeLogoUrl(body.get("logoUrl")));
 
         ModeleLlm saved = models.save(model);
 
         audit("CREATE", "LLM_MODEL", saved.getAliasInterne(), auth);
 
         return toModelResponse(saved);
+    }
+
+    @PatchMapping("/{id}")
+    @Transactional
+    public AdminModelResponse updateModel(@PathVariable Long id, @RequestBody Map<String, String> body, JwtAuthenticationToken auth) {
+        ModeleLlm model = models.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Model not found"));
+        if (body.containsKey("providerId")) {
+            Long providerId = Long.valueOf(required(body, "providerId"));
+            model.setFournisseur(providers.findById(providerId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Provider not found")));
+        }
+        if (body.containsKey("providerModel")) model.setNomModeleProvider(required(body, "providerModel"));
+        if (body.containsKey("displayName")) model.setNomAffichage(required(body, "displayName"));
+        if (body.containsKey("description")) model.setDescription(blankToNull(body.get("description")));
+        if (body.containsKey("logoUrl")) model.setLogoUrl(safeLogoUrl(body.get("logoUrl")));
+        if (body.containsKey("status")) model.setStatut(status(body.get("status"), model.getStatut()));
+        models.save(model);
+        audit("UPDATE", "LLM_MODEL", model.getAliasInterne(), auth);
+        return toModelResponse(model);
+    }
+
+    @DeleteMapping("/{id}")
+    @Transactional
+    public void deleteModel(@PathVariable Long id, JwtAuthenticationToken auth) {
+        ModeleLlm model = models.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Model not found"));
+        long references = conversations.countByModele_Id(id) + userRestrictions.countByLlmModelAlias(model.getAliasInterne()) + roleRestrictions.countByLlmModelAlias(model.getAliasInterne());
+        if (references > 0) throw new ResponseStatusException(HttpStatus.CONFLICT, "Ce modèle est utilisé par " + references + " références et ne peut pas être supprimé. Vous pouvez le désactiver.");
+        models.delete(model);
+        audit("DELETE", "LLM_MODEL", model.getAliasInterne(), auth);
     }
 
     @PatchMapping("/{id}/status")
@@ -177,7 +241,7 @@ public class AdminModelController {
                     "status", "FAILED",
                     "latencyMs", System.currentTimeMillis() - started,
                     "model", model.getAliasInterne(),
-                    "message", String.valueOf(exception.getMessage())
+                    "message", "Échec du test de connexion"
             );
         }
     }
@@ -203,7 +267,9 @@ public class AdminModelController {
                 provider.getId(),
                 provider.getCode(),
                 provider.getNom(),
-                provider.getStatut().name()
+                provider.getStatut().name(),
+                model.getDescription(),
+                model.getLogoUrl()
         );
     }
 
@@ -262,7 +328,26 @@ public class AdminModelController {
             Long providerId,
             String providerCode,
             String providerName,
-            String providerStatus
+            String providerStatus,
+            String description,
+            String logoUrl
     ) {
+    }
+
+    private String blankToNull(String value) { return value == null || value.isBlank() ? null : value.trim(); }
+
+    private String safeLogoUrl(String value) {
+        String normalized = blankToNull(value);
+        if (normalized == null) return null;
+        try {
+            URI uri = URI.create(normalized);
+            String scheme = uri.getScheme();
+            if (scheme == null || !(scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))) {
+                throw new IllegalArgumentException("Unsupported logo URL scheme");
+            }
+            return normalized;
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Logo URL must use http or https");
+        }
     }
 }

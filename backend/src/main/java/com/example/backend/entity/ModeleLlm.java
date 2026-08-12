@@ -34,6 +34,12 @@ public class ModeleLlm {
     @Column(name = "nom_affichage", nullable = false, length = 100)
     private String nomAffichage;
 
+    @Column(length = 500)
+    private String description;
+
+    @Column(name = "logo_url", length = 500)
+    private String logoUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private StatutModeleLlm statut;
@@ -69,6 +75,9 @@ public class ModeleLlm {
         return nomAffichage;
     }
 
+    public String getDescription() { return description; }
+    public String getLogoUrl() { return logoUrl; }
+
     public StatutModeleLlm getStatut() {
         return statut;
     }
@@ -77,6 +86,8 @@ public class ModeleLlm {
     public void setAliasInterne(String aliasInterne) { this.aliasInterne = aliasInterne; }
     public void setNomModeleProvider(String nomModeleProvider) { this.nomModeleProvider = nomModeleProvider; }
     public void setNomAffichage(String nomAffichage) { this.nomAffichage = nomAffichage; }
+    public void setDescription(String description) { this.description = description; }
+    public void setLogoUrl(String logoUrl) { this.logoUrl = logoUrl; }
     public void setStatut(StatutModeleLlm statut) { this.statut = statut; }
 }
 
