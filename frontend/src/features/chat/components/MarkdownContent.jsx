@@ -78,6 +78,7 @@ export function MarkdownImage({ src = '', alt = '', title }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function isRenderableMarkdownImageUrl(src) {
   try {
     const url = new URL(String(src || ''))

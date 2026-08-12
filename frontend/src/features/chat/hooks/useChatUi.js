@@ -124,8 +124,8 @@ export default function useChatUi({
 
   useLayoutEffect(() => {
     if (!hasActiveMessages) {
-      setGoBottomTop(null)
-      return undefined
+      const frame = window.requestAnimationFrame(() => setGoBottomTop(null))
+      return () => window.cancelAnimationFrame(frame)
     }
 
     const composer = composerRef.current

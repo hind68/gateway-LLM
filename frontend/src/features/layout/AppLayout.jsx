@@ -8,6 +8,7 @@ import ModelGallery from '../models/components/ModelGallery'
 import ModelSelector from '../models/components/ModelSelector'
 import ConversationMenu from '../conversations/components/ConversationMenu'
 import SearchModal from '../conversations/components/SearchModal'
+import AdminDashboard from '../admin/AdminDashboard'
 import Sidebar from './Sidebar'
 import { displayConversationTitle } from '../../utils/modelMetadata'
 
@@ -195,7 +196,13 @@ export default function AppLayout({
 
       <div className="chat-workspace">
       <main
-        className={`chat-main ${chat.hasActiveMessages ? 'conversation-mode' : 'welcome-mode'} ${isDraggingFiles ? 'is-dragging-files' : ''}`}
+        className={`chat-main ${
+          admin?.showAdminDashboard
+            ? 'admin-main'
+            : chat.hasActiveMessages
+              ? 'conversation-mode'
+              : 'welcome-mode'
+        } ${isDraggingFiles ? 'is-dragging-files' : ''}`}
         style={chat.goBottomTop == null ? undefined : { '--go-bottom-top': `${chat.goBottomTop}px` }}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
@@ -211,36 +218,63 @@ export default function AppLayout({
           </div>
         )}
         <header className="chat-header">
-          <div className="header-controls">
-            <ModelSelector
-              activeModel={models.activeModel}
-              disabled={status.isGenerating || models.isLoadingModels}
-              isOpen={layout.isModelMenuOpen}
-              models={models.models}
-              onSelect={actions.selectModel}
-              onToggle={() => {
-                layout.setIsAccountMenuOpen(false)
-                layout.setIsModelMenuOpen((current) => !current)
-              }}
-            />
+          {admin?.showAdminDashboard ? (
+            <>
+              <div className="admin-header-title">
+                <span className="admin-header-eyebrow">Synapse</span>
+                <h1>Administration</h1>
+              </div>
 
-            {activeConversation && (
-              <ConversationMenu
-                id="header-conversation-menu"
-                isOpen={layout.isHeaderMenuOpen}
-                archiveLabel={activeConversation.status === 'ARCHIVEE' ? 'Désarchiver' : 'Archiver'}
-                onArchive={() => (activeConversation.status === 'ARCHIVEE' ? actions.restoreConversation(activeConversation) : actions.archiveConversation(activeConversation))}
-                onDelete={() => actions.deleteConversation(activeConversation)}
-                onOpen={() => {
+              <div className="header-controls">
+                <button
+                  type="button"
+                  className="admin-back-button"
+                  onClick={() => admin.setShowAdminDashboard(false)}
+                >
+                  ← Retour au chat
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="header-controls">
+              <ModelSelector
+                activeModel={models.activeModel}
+                disabled={status.isGenerating || models.isLoadingModels}
+                isOpen={layout.isModelMenuOpen}
+                models={models.models}
+                onSelect={actions.selectModel}
+                onToggle={() => {
                   layout.setIsAccountMenuOpen(false)
-                  layout.setIsHeaderMenuOpen((current) => !current)
+                  layout.setIsModelMenuOpen((current) => !current)
                 }}
-                onRename={() => actions.renameConversation(activeConversation)}
               />
-            )}
-          </div>
+
+              {activeConversation && (
+                <ConversationMenu
+                  id="header-conversation-menu"
+                  isOpen={layout.isHeaderMenuOpen}
+                  archiveLabel={activeConversation.status === 'ARCHIVEE' ? 'Désarchiver' : 'Archiver'}
+                  onArchive={() => (activeConversation.status === 'ARCHIVEE' ? actions.restoreConversation(activeConversation) : actions.archiveConversation(activeConversation))}
+                  onDelete={() => actions.deleteConversation(activeConversation)}
+                  onOpen={() => {
+                    layout.setIsAccountMenuOpen(false)
+                    layout.setIsHeaderMenuOpen((current) => !current)
+                  }}
+                  onRename={() => actions.renameConversation(activeConversation)}
+                />
+              )}
+            </div>
+          )}
         </header>
 
+        {admin?.showAdminDashboard ? (
+          <AdminDashboard
+            onError={admin.onError}
+            onNotice={admin.onNotice}
+            onClose={() => admin.setShowAdminDashboard(false)}
+          />
+        ) : (
+          <>
         {layout.isModelsView && (
           <ModelGallery
             disabled={status.isGenerating}
@@ -307,6 +341,8 @@ export default function AppLayout({
             onSubmit={actions.sendMessage}
             textareaRef={chat.textareaRef}
           />
+        )}
+          </>
         )}
 
         <Toast

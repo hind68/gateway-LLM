@@ -6,7 +6,6 @@ import useAppMenus from './features/layout/hooks/useAppMenus'
 import useChatController from './features/chat/hooks/useChatController'
 import useChatUi from './features/chat/hooks/useChatUi'
 import useModels from './features/models/hooks/useModels'
-import AdminDashboard from './features/admin/AdminDashboard'
 import { hasAdminRole } from './utils/authUtils'
 
 function App() {
@@ -16,7 +15,7 @@ function App() {
   const [chatError, setChatError] = useState('')
   const [chatNotice, setChatNotice] = useState('')
   const [showTabs, setShowTabs] = useState(false)
-  const [isAdmin, setIsAdmin] = useState(hasAdminRole(token))
+  const isAdmin = hasAdminRole(token)
   const [showAdminDashboard, setShowAdminDashboard] = useState(false)
 
   const showError = useCallback((message) => {
@@ -104,10 +103,6 @@ function App() {
     },
   }
 
-  if (showAdminDashboard && isAdmin) {
-    return <AdminDashboard onError={showError} onNotice={showNotice} onClose={() => setShowAdminDashboard(false)} />
-  }
-
   return (
     <AppLayout
       layout={{
@@ -147,7 +142,10 @@ function App() {
       }}
       admin={{
         isAdmin,
-        setShowAdminDashboard
+        showAdminDashboard,
+        setShowAdminDashboard,
+        onError: showError,
+        onNotice: showNotice
       }}
     />
   )

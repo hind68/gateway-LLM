@@ -31,11 +31,13 @@ export async function apiFetch(path, options = {}) {
  * keep direct access to `response.body.getReader()` instead of eagerly parsing content.
  */
 export async function apiFetchResponse(path, options = {}) {
-  try {
-    await keycloak.updateToken(30)
-  } catch (error) {
-    keycloak.login()
-    throw new ApiError('Unauthorized', { status: 401 })
+  if (keycloak?.authenticated && typeof keycloak.updateToken === 'function') {
+    try {
+      await keycloak.updateToken(30)
+    } catch {
+      keycloak.login()
+      throw new ApiError('Unauthorized', { status: 401 })
+    }
   }
 
   const response = await fetch(buildApiUrl(path), prepareOptions(options))

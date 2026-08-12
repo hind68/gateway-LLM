@@ -35,13 +35,16 @@ export default function DocumentInspectorPanel({ attachment: inspectionTarget, c
   const textSizeControlRef = useRef(null)
 
   useEffect(() => {
-    setActiveTab(initialMode(target))
-    setOriginalState(initialOriginalState())
-    setInspectionState(initialInspectionState(target))
-    setSecureState(initialSecureState(target))
-    setCopySucceeded(false)
-    setFontSize(READER_FONT_SIZE)
-    setShowTextSizeMenu(false)
+    const timer = window.setTimeout(() => {
+      setActiveTab(initialMode(target))
+      setOriginalState(initialOriginalState())
+      setInspectionState(initialInspectionState(target))
+      setSecureState(initialSecureState(target))
+      setCopySucceeded(false)
+      setFontSize(READER_FONT_SIZE)
+      setShowTextSizeMenu(false)
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [attachmentKey])
 
   useEffect(() => {

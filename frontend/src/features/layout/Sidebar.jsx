@@ -78,6 +78,10 @@ export default function Sidebar({
     admin?.setShowAdminDashboard(true)
   }
 
+  const closeAdminDashboard = () => {
+    admin?.setShowAdminDashboard(false)
+  }
+
   return (
     <>
       {isSidebarOpen && <button className="mobile-overlay" type="button" aria-label="Fermer" onClick={toggleSidebar} />}
@@ -115,7 +119,7 @@ export default function Sidebar({
 
         <nav className="sidebar-navigation" aria-label="Actions principales">
           <div className="sidebar-primary-nav">
-            <button type="button" title="Nouvelle conversation" aria-label="Nouvelle conversation" onClick={() => { closeSidebarPanels(); newConversation() }}>
+            <button type="button" title="Nouvelle conversation" aria-label="Nouvelle conversation" onClick={() => { closeAdminDashboard(); closeSidebarPanels(); newConversation() }}>
               <span className="sidebar-icon" aria-hidden="true">
                 <img src="/assets/new-tab.png" alt="" />
               </span>
@@ -127,6 +131,7 @@ export default function Sidebar({
               title="Rechercher"
               aria-label="Rechercher"
               onClick={() => {
+                closeAdminDashboard()
                 setIsSearchModalOpen(true)
                 if (isSidebarOpen) {
                   setIsAccountMenuOpen(false)
@@ -148,6 +153,7 @@ export default function Sidebar({
               title="Explorer les modèles"
               aria-label="Explorer les modèles"
               onClick={() => {
+                closeAdminDashboard()
                 closeTransientMenus()
                 setIsAccountMenuOpen(false)
                 setActiveView((current) => (current === 'models' ? 'chat' : 'models'))
@@ -165,6 +171,7 @@ export default function Sidebar({
             title="Discussions récentes"
             aria-label="Discussions récentes"
             onClick={() => {
+              closeAdminDashboard()
               setShowArchived(false)
               if (isSidebarOpen) {
                 setIsAccountMenuOpen(false)
