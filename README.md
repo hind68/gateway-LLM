@@ -56,7 +56,7 @@ Default local URLs:
 | Service | URL |
 | --- | --- |
 | Frontend | `http://localhost:5173` |
-| Backend API | `http://localhost:8080/api` |
+| Backend API | `http://127.0.0.1:8081/api` |
 | LiteLLM | `http://localhost:4000` |
 | PostgreSQL from host | `localhost:5433` |
 | PostgreSQL from Docker network | `postgres:5432` |
@@ -198,7 +198,7 @@ http://localhost:5173
 The frontend calls:
 
 ```text
-http://localhost:8080/api
+http://127.0.0.1:8081/api
 ```
 
 ## 5. Quick Verification
@@ -206,13 +206,13 @@ http://localhost:8080/api
 Backend health:
 
 ```powershell
-curl.exe http://localhost:8080/api/health
+curl.exe http://127.0.0.1:8081/api/health
 ```
 
 Available models:
 
 ```powershell
-curl.exe http://localhost:8080/api/models/details
+curl.exe http://127.0.0.1:8081/api/models/details
 ```
 
 Simple backend chat test:
@@ -346,7 +346,7 @@ Check that the matching key exists in `.env`. For example, `secure-gemini` requi
 
 Usually one of these services is not running:
 
-- backend on `http://localhost:8080`;
+- backend on `http://127.0.0.1:8081`;
 - frontend on `http://localhost:5173`;
 - Docker services for PostgreSQL and LiteLLM.
 

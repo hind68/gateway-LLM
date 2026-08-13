@@ -11,14 +11,14 @@ React -> Spring Boot -> LiteLLM -> LLM provider
 It uses the backend API at:
 
 ```text
-http://localhost:8080/api
+http://127.0.0.1:8081/api
 ```
 
 ## Requirements
 
 - Node.js
 - npm
-- Backend running on `http://localhost:8080`
+- Backend running on `http://127.0.0.1:8081`
 - Docker services running from the project root
 
 ## Run Locally
@@ -81,7 +81,7 @@ Use your local `.env` values if they are different.
 Check that the backend is running:
 
 ```powershell
-curl.exe http://localhost:8080/api/health
+curl.exe http://127.0.0.1:8081/api/health
 ```
 
 If the backend is down, the frontend cannot call models, conversations or streaming endpoints.
