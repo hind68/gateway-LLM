@@ -78,7 +78,7 @@ export default function AdminDashboard({ onError, onNotice }) {
   const [availableModels, setAvailableModels] = useState([])
   const [adminModels, setAdminModels] = useState([])
   const [adminProviders, setAdminProviders] = useState([])
-  const [newProvider, setNewProvider] = useState({ code: '', name: '', status: 'ACTIF' })
+  const [newProvider, setNewProvider] = useState({ code: '', name: '', status: 'ACTIF', apiKeyEnvVar: '' })
   const [editingProviderId, setEditingProviderId] = useState(null)
   const [newAdminModel, setNewAdminModel] = useState({ providerId: '', alias: '', providerModel: '', displayName: '', description: '', logoUrl: '' })
   const [securityMetrics, setSecurityMetrics] = useState(null)
@@ -357,7 +357,7 @@ export default function AdminDashboard({ onError, onNotice }) {
     event.preventDefault()
     try {
       await createAdminProvider(newProvider, token)
-      setNewProvider({ code: '', name: '', status: 'ACTIF' })
+      setNewProvider({ code: '', name: '', status: 'ACTIF', apiKeyEnvVar: '' })
       onNotice('Fournisseur ajouté')
       loadAdminProviders()
     } catch (err) { onError(err.message) }
@@ -368,7 +368,7 @@ export default function AdminDashboard({ onError, onNotice }) {
     try {
       await updateAdminProvider(editingProviderId, newProvider, token)
       setEditingProviderId(null)
-      setNewProvider({ code: '', name: '', status: 'ACTIF' })
+      setNewProvider({ code: '', name: '', status: 'ACTIF', apiKeyEnvVar: '' })
       onNotice('Fournisseur mis à jour')
       loadAdminProviders()
     } catch (err) { onError(err.message) }
@@ -376,7 +376,7 @@ export default function AdminDashboard({ onError, onNotice }) {
 
   function editProvider(provider) {
     setEditingProviderId(provider.id)
-    setNewProvider({ code: provider.code || '', name: provider.nom || provider.name || '', status: provider.statut || 'ACTIF' })
+    setNewProvider({ code: provider.code || '', name: provider.nom || provider.name || '', status: provider.statut || 'ACTIF', apiKeyEnvVar: provider.apiKeyEnvVar || '' })
   }
 
   async function handleToggleProvider(provider) {
@@ -1115,6 +1115,17 @@ export default function AdminDashboard({ onError, onNotice }) {
                       onChange={e => setNewProvider({ ...newProvider, name: e.target.value })}
                       required
                     />
+                    <input
+                      className="admin-input"
+                      placeholder="Variable clé API (ex. OPENAI_API_KEY)"
+                      value={newProvider.apiKeyEnvVar}
+                      onChange={e => setNewProvider({ ...newProvider, apiKeyEnvVar: e.target.value.toUpperCase() })}
+                      pattern="[A-Z][A-Z0-9_]{1,99}"
+                      aria-describedby="provider-api-key-help"
+                    />
+                    <small id="provider-api-key-help" className="admin-form-help">
+                      La clé secrète reste dans .env ; seul son nom de variable est enregistré.
+                    </small>
                     <select className="admin-input" value={newProvider.status} onChange={e => setNewProvider({ ...newProvider, status: e.target.value })}>
                       <option value="ACTIF">Actif</option>
                       <option value="INACTIF">Inactif</option>
@@ -1122,7 +1133,7 @@ export default function AdminDashboard({ onError, onNotice }) {
                     <button className="admin-submit-btn" type="submit">
                       {editingProviderId ? 'Enregistrer le fournisseur' : 'Ajouter le fournisseur'}
                     </button>
-                    {editingProviderId && <button type="button" className="admin-secondary-btn" onClick={() => { setEditingProviderId(null); setNewProvider({ code: '', name: '', status: 'ACTIF' }) }}>Annuler</button>}
+                    {editingProviderId && <button type="button" className="admin-secondary-btn" onClick={() => { setEditingProviderId(null); setNewProvider({ code: '', name: '', status: 'ACTIF', apiKeyEnvVar: '' }) }}>Annuler</button>}
                   </form>
                 </div>
 
@@ -1191,6 +1202,9 @@ export default function AdminDashboard({ onError, onNotice }) {
                     <div>
                       <strong>{provider.nom || provider.name || provider.code}</strong>
                       <span className="admin-meta-line">{provider.code}</span>
+                      <span className="admin-meta-line">
+                        {provider.apiKeyEnvVar ? `${provider.apiKeyEnvVar} · ${provider.apiKeyConfigured ? 'clé configurée' : 'clé manquante'}` : 'Aucune variable de clé API'}
+                      </span>
                     </div>
                     <span className={`admin-status-badge ${provider.statut === 'ACTIF' ? 'active' : 'inactive'}`}>
                       {provider.statut === 'ACTIF' ? 'Actif' : 'Inactif'}

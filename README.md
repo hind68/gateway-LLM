@@ -80,6 +80,8 @@ Provider keys used by the current LiteLLM config:
 
 `secure-claude` is prepared in `litellm/config.yaml` but is commented. Enable it only after adding `ANTHROPIC_API_KEY`.
 
+In the admin model catalog, each provider can reference its API-key environment variable (for example `OPENAI_API_KEY`). The secret value is intentionally not stored in PostgreSQL or returned by the API. Add the value to `.env`, restart LiteLLM, then the admin catalog will show whether the referenced key is configured.
+
 ## 1. Configure Environment
 
 From the project root:

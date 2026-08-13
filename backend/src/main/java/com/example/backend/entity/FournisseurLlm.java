@@ -33,6 +33,9 @@ public class FournisseurLlm {
     @Column(nullable = false, length = 20)
     private StatutFournisseurLlm statut;
 
+    @Column(name = "api_key_env_var", length = 100)
+    private String apiKeyEnvVar;
+
     @OneToMany(mappedBy = "fournisseur", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<ModeleLlm> modeles = new LinkedHashSet<>();
 
@@ -64,6 +67,8 @@ public class FournisseurLlm {
     public void setCode(String code) { this.code = code; }
     public void setNom(String nom) { this.nom = nom; }
     public void setStatut(StatutFournisseurLlm statut) { this.statut = statut; }
+    public String getApiKeyEnvVar() { return apiKeyEnvVar; }
+    public void setApiKeyEnvVar(String apiKeyEnvVar) { this.apiKeyEnvVar = apiKeyEnvVar; }
 
     public Set<ModeleLlm> getModeles() {
         return modeles;

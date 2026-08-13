@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.net.URI;
 import org.springframework.http.HttpStatus;
+import org.springframework.core.env.Environment;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +36,7 @@ public class AdminModelController {
     private final ConversationRepository conversations;
     private final UserLlmRestrictionRepository userRestrictions;
     private final RoleLlmRestrictionRepository roleRestrictions;
+    private final Environment environment;
 
     public AdminModelController(
             FournisseurLlmRepository providers,
@@ -43,7 +45,8 @@ public class AdminModelController {
             LiteLlmService liteLlm,
             ConversationRepository conversations,
             UserLlmRestrictionRepository userRestrictions,
-            RoleLlmRestrictionRepository roleRestrictions
+            RoleLlmRestrictionRepository roleRestrictions,
+            Environment environment
     ) {
         this.providers = providers;
         this.models = models;
@@ -52,6 +55,7 @@ public class AdminModelController {
         this.conversations = conversations;
         this.userRestrictions = userRestrictions;
         this.roleRestrictions = roleRestrictions;
+        this.environment = environment;
     }
 
     @GetMapping("/providers")
@@ -83,6 +87,7 @@ public class AdminModelController {
                 required(body, "name"),
                 status(body.get("status"), StatutFournisseurLlm.ACTIF)
         );
+        provider.setApiKeyEnvVar(apiKeyEnvVar(body.get("apiKeyEnvVar")));
 
         FournisseurLlm saved = providers.save(provider);
 
@@ -98,6 +103,7 @@ public class AdminModelController {
         if (body.containsKey("code")) provider.setCode(required(body, "code"));
         if (body.containsKey("name")) provider.setNom(required(body, "name"));
         if (body.containsKey("status")) provider.setStatut(status(body.get("status"), provider.getStatut()));
+        if (body.containsKey("apiKeyEnvVar")) provider.setApiKeyEnvVar(apiKeyEnvVar(body.get("apiKeyEnvVar")));
         providers.save(provider);
         audit("UPDATE", "LLM_PROVIDER", provider.getCode(), auth);
         return toProviderResponse(provider);
@@ -251,7 +257,9 @@ public class AdminModelController {
                 provider.getId(),
                 provider.getCode(),
                 provider.getNom(),
-                provider.getStatut().name()
+                provider.getStatut().name(),
+                provider.getApiKeyEnvVar(),
+                isApiKeyConfigured(provider.getApiKeyEnvVar())
         );
     }
 
@@ -286,6 +294,20 @@ public class AdminModelController {
         return value.trim();
     }
 
+    private String apiKeyEnvVar(String value) {
+        String normalized = blankToNull(value);
+        if (normalized == null) return null;
+        if (!normalized.matches("[A-Z][A-Z0-9_]{1,99}")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "apiKeyEnvVar must be an uppercase environment variable name");
+        }
+        return normalized;
+    }
+
+    private boolean isApiKeyConfigured(String envVar) {
+        String value = envVar == null ? null : environment.getProperty(envVar);
+        return value != null && !value.isBlank() && !value.startsWith("your_");
+    }
+
     private <T extends Enum<T>> T status(String value, T fallback) {
         return value == null || value.isBlank()
                 ? fallback
@@ -315,7 +337,9 @@ public class AdminModelController {
             Long id,
             String code,
             String nom,
-            String statut
+            String statut,
+            String apiKeyEnvVar,
+            boolean apiKeyConfigured
     ) {
     }
 
