@@ -14,6 +14,10 @@ export function exceedsMaxAttachments(currentCount, selectedCount) {
   return Number(currentCount || 0) + Number(selectedCount || 0) > MAX_ATTACHMENTS
 }
 
+export function availableAttachmentSlots(currentCount) {
+  return Math.max(0, MAX_ATTACHMENTS - Number(currentCount || 0))
+}
+
 const GO_BOTTOM_GAP = 12
 const GO_BOTTOM_HEIGHT = 32
 
@@ -41,6 +45,7 @@ export default function useChatUi({
   const [attachmentError, setAttachmentError] = useState('')
   const [isComposerMaxed, setIsComposerMaxed] = useState(false)
   const [isComposerTransitioning, setIsComposerTransitioning] = useState(false)
+  const [composerHeight, setComposerHeight] = useState(null)
   const [goBottomTop, setGoBottomTop] = useState(null)
 
   const textareaRef = useRef(null)
@@ -167,6 +172,7 @@ export default function useChatUi({
   useLayoutEffect(() => {
     if (!hasActiveMessages) {
       setGoBottomTop(null)
+      setComposerHeight(null)
       return undefined
     }
 
@@ -180,7 +186,9 @@ export default function useChatUi({
       frame = 0
       const composerRect = composer.getBoundingClientRect()
       const mainRect = chatMain.getBoundingClientRect()
+      const nextComposerHeight = Math.ceil(composerRect.height)
       const nextTop = Math.max(12, Math.round(composerRect.top - mainRect.top - GO_BOTTOM_GAP - GO_BOTTOM_HEIGHT))
+      setComposerHeight((current) => (current === nextComposerHeight ? current : nextComposerHeight))
       setGoBottomTop((current) => (current === nextTop ? current : nextTop))
     }
 
@@ -245,13 +253,14 @@ export default function useChatUi({
   const addAttachments = useCallback((fileList) => {
     const incoming = Array.from(fileList || [])
     if (incoming.length === 0) return
-    if (exceedsMaxAttachments(attachments.length, incoming.length)) {
+    const availableSlots = availableAttachmentSlots(attachments.length)
+    const filesToProcess = incoming.slice(0, availableSlots)
+    if (filesToProcess.length < incoming.length) {
       setAttachmentError(MAX_ATTACHMENTS_MESSAGE)
       showError(MAX_ATTACHMENTS_MESSAGE)
-      return
     }
     const accepted = []
-    for (const file of incoming) {
+    for (const file of filesToProcess) {
       const extension = `.${file.name.split('.').pop() || ''}`.toLowerCase()
       if (!ACCEPTED_ATTACHMENT_EXTENSIONS.includes(extension)) {
         showError(`Fichier non supporte : ${file.name}`)
@@ -293,10 +302,10 @@ export default function useChatUi({
     bottomRef,
     canSend,
     attachments,
-    attachmentError,
     addAttachments,
     clearAttachments,
     composerBeforeRectRef,
+    composerHeight,
     composerRef,
     copiedKey,
     draft,

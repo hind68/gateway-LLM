@@ -207,7 +207,10 @@ export default function AppLayout({
               ? 'conversation-mode'
               : 'welcome-mode'
         } ${isDraggingFiles ? 'is-dragging-files' : ''}`}
-        style={chat.goBottomTop == null ? undefined : { '--go-bottom-top': `${chat.goBottomTop}px` }}
+        style={{
+          ...(chat.goBottomTop == null ? {} : { '--go-bottom-top': `${chat.goBottomTop}px` }),
+          ...(chat.composerHeight == null ? {} : { '--composer-height': `${chat.composerHeight}px` }),
+        }}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}

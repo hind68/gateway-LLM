@@ -1,4 +1,4 @@
-import { cleanModelName, displayConversationTitle } from '../../../utils/modelMetadata'
+import { displayConversationTitle, modelLogoSrc } from '../../../utils/modelMetadata'
 import ConversationMenu from './ConversationMenu'
 
 export default function ConversationItem({
@@ -22,6 +22,7 @@ export default function ConversationItem({
   const isGeneratingConversation = conversation.uiStatus === 'generating'
   const isUnread = conversation.uiStatus === 'completed_unread'
   const isEditing = editingConversationId === conversation.id
+  const modelLogo = modelLogoSrc(conversation.modelAlias)
 
   return (
     <div className={`history-row ${activeConversation?.id === conversation.id ? 'active' : ''} ${isUnread ? 'unread' : ''}`}>
@@ -45,16 +46,15 @@ export default function ConversationItem({
               }
             }}
           />
-          <small className="model-badge">{cleanModelName(conversation.modelDisplayName, conversation.modelAlias)}</small>
         </div>
       ) : (
         <button className="history-item" type="button" onClick={() => openConversation(conversation)}>
           <span className="history-title">
-            <span>{displayConversationTitle(conversation.title)}</span>
+            {modelLogo && <img className="conversation-model-icon" src={modelLogo} alt="" aria-hidden="true" />}
+            <span className="conversation-title-text">{displayConversationTitle(conversation.title)}</span>
             {isGeneratingConversation && <InlineGeneratingIndicator />}
             {isUnread && !isGeneratingConversation && <span className="notification-dot" aria-label="Réponse prête"></span>}
           </span>
-          <small className="model-badge">{cleanModelName(conversation.modelDisplayName, conversation.modelAlias)}</small>
         </button>
       )}
       <ConversationMenu

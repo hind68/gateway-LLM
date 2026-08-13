@@ -43,7 +43,7 @@
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 16px 24px 136px;
+  padding: 16px 24px calc(var(--composer-height, 120px) + 16px);
   scrollbar-width: thin;
   scrollbar-color: rgba(40, 50, 68, 0.22) transparent;
 }
@@ -78,7 +78,7 @@
 .conversation-mode .messages {
   display: block;
   place-items: initial;
-  padding-bottom: 136px;
+  padding-bottom: calc(var(--composer-height, 120px) + 16px);
 }
 
 .chat-main.welcome-mode {

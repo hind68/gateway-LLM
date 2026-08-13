@@ -531,14 +531,15 @@ describe('ChatMessage', () => {
     expect(cssRule(messagesCss, '.message.assistant.dlp-blocked-response')).toMatch(/width:\s*min\(var\(--assistant-content-width\),\s*calc\(100% - 36px\)\);/)
     expect(cssRule(messagesCss, '.message.assistant.dlp-blocked-response .bubble')).toMatch(/width:\s*100%;/)
     expect(cssRule(messagesCss, '.message.assistant.dlp-blocked-response .bubble')).toMatch(/max-width:\s*100%;/)
-    expect(cssRule(messagesCss, '.message.assistant.dlp-blocked-response .dlp-alert')).toMatch(/width:\s*min\(100%,\s*34rem\);/)
-    expect(cssRule(messagesCss, '.message.assistant.dlp-blocked-response .dlp-alert')).toMatch(/max-width:\s*min\(100%,\s*34rem\);/)
+    expect(cssRule(messagesCss, '.message.assistant.dlp-blocked-response .dlp-alert')).toMatch(/width:\s*100%;/)
+    expect(cssRule(messagesCss, '.message.assistant.dlp-blocked-response .dlp-alert')).toMatch(/max-width:\s*560px;/)
     expect(cssRule(messagesCss, '.message.assistant.dlp-blocked-response .dlp-alert')).toMatch(/overflow:\s*hidden;/)
     expect(cssRule(messagesCss, '.message.assistant.dlp-blocked-response .dlp-alert.is-expanded')).toMatch(/width:\s*100%;/)
-    expect(cssRule(messagesCss, '.message.assistant.dlp-blocked-response .dlp-alert.is-expanded')).toMatch(/max-width:\s*100%;/)
+    expect(cssRule(messagesCss, '.message.assistant.dlp-blocked-response .dlp-alert.is-expanded')).toMatch(/max-width:\s*560px;/)
     expect(cssRule(messagesCss, '.message.assistant.dlp-blocked-response')).toMatch(/margin-left:\s*auto;/)
     expect(cssRule(messagesCss, '.message.assistant.dlp-blocked-response')).not.toMatch(/width:\s*100%;/)
-    expect(cssRule(chatCss, '.messages')).toMatch(/padding-bottom:\s*136px;/)
+    expect(chatCss).toMatch(/padding:\s*16px 24px calc\(var\(--composer-height,\s*120px\) \+ 16px\);/)
+    expect(cssRule(chatCss, '.conversation-mode .messages')).toMatch(/padding-bottom:\s*calc\(var\(--composer-height,\s*120px\) \+ 16px\);/)
     expect(cssRule(chatCss, '.go-bottom-button')).toMatch(/left:\s*50%;/)
     expect(cssRule(chatCss, '.go-bottom-button')).toMatch(/top:\s*var\(--go-bottom-top/)
     expect(cssRule(chatCss, '.go-bottom-button')).not.toMatch(/calc\(100% - 176px\)/)
@@ -669,6 +670,34 @@ describe('ChatMessage', () => {
     expect(messagesCss).not.toContain('dlp-inspect-primary')
     expect(messagesCss).not.toContain('dlp-inspect-button')
     expect(html).not.toContain('OPENAI_API_KEY_1</span><span class="dlp-detection-type"')
+  })
+
+  it('renders assistant DLP blocked messages with the assistant header', () => {
+    const html = renderToStaticMarkup(
+      <ChatMessage
+        copiedKey=""
+        fallbackModelAlias="secure-groq"
+        fallbackModelName="Groq"
+        message={{
+          id: 49,
+          role: 'ASSISTANT',
+          status: 'DLP_BLOCKED',
+          content: '',
+          modelAlias: 'secure-groq',
+          modelDisplayName: 'Groq',
+          dlpMaskedText: 'Token [OPENAI_API_KEY_1]',
+          dlpHighestSeverity: 'HIGH',
+          dlpDetectedTypes: ['openai_api_key'],
+          dlpMatches: [{ type: 'openai_api_key', start: 0, end: 8, lineNumber: 1, placeholder: '[OPENAI_API_KEY_1]' }],
+        }}
+        onCopy={vi.fn()}
+        setCopiedKey={vi.fn()}
+      />,
+    )
+
+    expect(html).toContain('assistant-header')
+    expect(html).toContain('Groq')
+    expect(html).toContain('dlp-alert')
   })
 
   it('collapses DLP blocked attachments to three cards with a dynamic toggle', () => {

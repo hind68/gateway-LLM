@@ -21,7 +21,7 @@ export default function useAutoScroll(messages) {
 
     scrollFrameRef.current = requestAnimationFrame(() => {
       if (behavior === 'smooth') {
-        bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+        element.scrollTo({ top: element.scrollHeight, behavior: 'smooth' })
       } else {
         element.scrollTop = element.scrollHeight
       }

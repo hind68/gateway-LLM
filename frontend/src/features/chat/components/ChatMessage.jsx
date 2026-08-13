@@ -79,6 +79,24 @@ function ChatMessage({ copiedKey, fallbackModelAlias, fallbackModelName, message
     )
   }
 
+  if (!isUser && isDlpBlocked) {
+    return (
+      <article className="message assistant dlp-blocked-response">
+        <div className="bubble">
+          <AssistantMessageHeader modelAlias={effectiveModelAlias} modelName={modelName} />
+          <DlpBlockedMessage
+            alertCopied={isAlertCopied}
+            copied={isSafeCopied}
+            message={message}
+            onCopyAlert={(text) => copyResponse(alertCopyKey, text)}
+            onCopySafe={(text) => copyResponse(safeCopyKey, text)}
+            onInspectDocument={onInspectDocument}
+          />
+        </div>
+      </article>
+    )
+  }
+
   return (
     <article className={`message ${isUser ? 'user' : 'assistant'}`}>
       <div className="bubble">

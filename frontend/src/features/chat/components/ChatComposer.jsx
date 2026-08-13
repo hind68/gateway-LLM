@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react'
 import { PlusIcon, StopIcon } from '../../../components/common/icons'
 import FileAttachmentCard from './FileAttachmentCard'
-import { ACCEPTED_ATTACHMENT_EXTENSIONS, MAX_ATTACHMENTS } from '../hooks/useChatUi'
+import { ACCEPTED_ATTACHMENT_EXTENSIONS } from '../hooks/useChatUi'
 
 export default function ChatComposer({
   canSend,
   attachments = [],
-  attachmentError = '',
   composerRef,
   draft,
   hasActiveMessages,
@@ -70,9 +69,6 @@ export default function ChatComposer({
           </button>
         </div>
       )}
-      {attachmentError && (
-        <p className="composer-attachment-error" role="alert">{attachmentError}</p>
-      )}
       <div className="composer-input-row">
       <label className="attach-button" aria-label="Joindre des fichiers" title="Joindre des fichiers">
         <PlusIcon />
@@ -81,7 +77,7 @@ export default function ChatComposer({
           multiple
           hidden
           accept={ACCEPTED_ATTACHMENT_EXTENSIONS.join(',')}
-          disabled={isGenerating || attachments.length >= MAX_ATTACHMENTS}
+          disabled={isGenerating}
           onChange={(event) => {
             onFilesSelected(event.target.files)
             event.target.value = ''
