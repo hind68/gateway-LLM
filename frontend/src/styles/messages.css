@@ -845,8 +845,7 @@
 
 .message.assistant.dlp-blocked-response .dlp-alert {
   box-sizing: border-box;
-  width: min(100%, 34rem);
-  max-width: min(100%, 34rem);
+  width: 100%;
   max-width: 560px;
   min-width: 0;
   margin-right: auto;
@@ -855,7 +854,7 @@
 
 .message.assistant.dlp-blocked-response .dlp-alert.is-expanded {
   width: 100%;
-  max-width: 100%;
+  max-width: 560px;
 }
 
 .message.assistant.dlp-blocked-response .dlp-alert.is-compact {

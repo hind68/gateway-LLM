@@ -216,7 +216,7 @@
   max-height: 170px;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 4px 50px 6px 4px;
+  padding: 6px 50px 8px 6px;
   scrollbar-width: none;
 }
 
@@ -237,10 +237,10 @@
 
 .attachment-chip {
   position: relative;
-  width: 220px;
-  min-width: 220px;
-  max-width: 220px;
-  flex: 0 0 220px;
+  width: var(--attachment-card-width);
+  min-width: var(--attachment-card-width);
+  max-width: var(--attachment-card-width);
+  flex: 0 0 var(--attachment-card-width);
   display: inline-flex;
   align-items: center;
   gap: 8px;
