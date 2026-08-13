@@ -44,6 +44,7 @@
 .sidebar-brand,
 .sidebar-toggle,
 .sidebar-navigation button,
+.sidebar-admin-navigation button,
 .sidebar-user > button {
   border: 0;
   background: transparent;
@@ -152,7 +153,8 @@
   margin-bottom: 6px;
 }
 
-.sidebar-navigation button {
+.sidebar-navigation button,
+.sidebar-admin-navigation button {
   min-width: 0;
   width: var(--sidebar-item-width);
   height: 36px;
@@ -168,11 +170,13 @@
   transition: background-color 140ms ease, color 140ms ease;
 }
 
-.sidebar-navigation button:hover {
+.sidebar-navigation button:hover,
+.sidebar-admin-navigation button:hover {
   background: var(--sidebar-hover-subtle);
 }
 
-.sidebar-navigation button.active {
+.sidebar-navigation button.active,
+.sidebar-admin-navigation button.active {
   background: var(--ui-blue-100);
   color: var(--ui-blue-900);
 }
@@ -206,21 +210,28 @@
 }
 
 .sidebar-closed .sidebar-navigation button:hover,
-.sidebar-closed .sidebar-navigation button.active {
+.sidebar-closed .sidebar-navigation button.active,
+.sidebar-closed .sidebar-admin-navigation button:hover,
+.sidebar-closed .sidebar-admin-navigation button.active {
   background: transparent;
 }
 
 .sidebar-closed .sidebar-navigation button:hover .sidebar-icon,
-.sidebar-closed .sidebar-navigation button.active .sidebar-icon {
+.sidebar-closed .sidebar-navigation button.active .sidebar-icon,
+.sidebar-closed .sidebar-admin-navigation button:hover .sidebar-icon,
+.sidebar-closed .sidebar-admin-navigation button.active .sidebar-icon {
   background: transparent;
 }
 
 .sidebar-closed .sidebar-navigation button:hover .sidebar-icon::before,
-.sidebar-closed .sidebar-navigation button.active .sidebar-icon::before {
+.sidebar-closed .sidebar-navigation button.active .sidebar-icon::before,
+.sidebar-closed .sidebar-admin-navigation button:hover .sidebar-icon::before,
+.sidebar-closed .sidebar-admin-navigation button.active .sidebar-icon::before {
   background: var(--sidebar-hover-subtle);
 }
 
-.sidebar-navigation img {
+.sidebar-navigation img,
+.sidebar-admin-navigation img {
   width: 19px;
   height: 19px;
   object-fit: contain;
@@ -232,7 +243,8 @@
   height: 20px;
 }
 
-.sidebar-navigation span {
+.sidebar-navigation span,
+.sidebar-admin-navigation span {
   min-width: 0;
   overflow: hidden;
   color: #111111;
@@ -253,6 +265,12 @@
   display: flex;
   flex-direction: column;
   padding: 0;
+}
+
+.sidebar-admin-navigation {
+  flex-shrink: 0;
+  padding: 7px 0;
+  border-top: 1px solid var(--sidebar-divider);
 }
 
 .recent-section .history-heading {
@@ -405,6 +423,7 @@
 
 .sidebar-closed .sidebar-brand > span:not(.sidebar-logo),
 .sidebar-closed .sidebar-navigation button > span:not(.sidebar-icon),
+.sidebar-closed .sidebar-admin-navigation button > span:not(.sidebar-icon),
 .sidebar-closed .user-copy {
   opacity: 0;
   pointer-events: none;
@@ -446,7 +465,8 @@
   justify-items: start;
 }
 
-.sidebar-closed .sidebar-navigation button {
+.sidebar-closed .sidebar-navigation button,
+.sidebar-closed .sidebar-admin-navigation button {
   width: var(--sidebar-open-width);
   height: 36px;
   grid-template-columns: 56px minmax(0, 1fr);

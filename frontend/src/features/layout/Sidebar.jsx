@@ -215,6 +215,24 @@ export default function Sidebar({
           />
         </section>
 
+        {admin?.isAdmin && (
+          <nav className="sidebar-admin-navigation" aria-label="Administration">
+            <button
+              className={admin.showAdminDashboard ? 'active' : ''}
+              type="button"
+              title="Administration"
+              aria-label="Administration"
+              aria-current={admin.showAdminDashboard ? 'page' : undefined}
+              onClick={handleAdminClick}
+            >
+              <span className="sidebar-icon" aria-hidden="true">
+                <img src="/assets/administrateur.png" alt="" />
+              </span>
+              <span>Administration</span>
+            </button>
+          </nav>
+        )}
+
         <div className="sidebar-user" data-menu-root>
           <button
             type="button"
@@ -233,13 +251,13 @@ export default function Sidebar({
             </span>
           </button>
           {isSidebarOpen && isAccountMenuOpen && (
-            <AccountPopover admin={admin} onAdminClick={handleAdminClick} />
+            <AccountPopover />
           )}
         </div>
       </aside>
 
       {!isSidebarOpen && isAccountMenuOpen && (
-        <AccountPopover className="account-popover-collapsed" admin={admin} onAdminClick={handleAdminClick} />
+        <AccountPopover className="account-popover-collapsed" />
       )}
 
       {!isSidebarOpen && collapsedPanel && (
@@ -264,16 +282,11 @@ export default function Sidebar({
   )
 }
 
-function AccountPopover({ className = 'account-popover-open', admin, onAdminClick }) {
+function AccountPopover({ className = 'account-popover-open' }) {
   const keycloak = useContext(AuthContext)
 
   return (
     <div className={`account-popover ${className}`} role="menu" data-menu-root>
-      {admin?.isAdmin && (
-        <button type="button" role="menuitem" onClick={onAdminClick}>
-          Administration
-        </button>
-      )}
       <button
         type="button"
         role="menuitem"
