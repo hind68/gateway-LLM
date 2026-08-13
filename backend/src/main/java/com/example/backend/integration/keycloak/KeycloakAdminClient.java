@@ -19,9 +19,9 @@ public class KeycloakAdminClient {
     private final Duration timeout = Duration.ofSeconds(10);
 
     public KeycloakAdminClient(
-            @Value("${keycloak.admin.base-url:http://localhost:8080}") String baseUrl,
+            @Value("${keycloak.admin.base-url:http://127.0.0.1:8080}") String baseUrl,
             @Value("${keycloak.admin.realm:synapse}") String realm,
-            @Value("${keycloak.admin.token-realm:master}") String adminRealm,
+            @Value("${keycloak.admin.token-realm:synapse}") String adminRealm,
             @Value("${keycloak.admin.client-id:gateway-admin}") String clientId,
             @Value("${keycloak.admin.client-secret:}") String clientSecret
     ) {

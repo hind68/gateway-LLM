@@ -170,6 +170,9 @@ cmd /c mvnw.cmd spring-boot:run
 ```
 
 Use the same values that you placed in `.env`.
+The backend also imports the ignored root `.env` automatically when launched from
+the project root or from `backend/`, so the local Keycloak service-client secret is
+available without committing it.
 
 Flyway runs automatically when the backend starts. It creates and validates the PostgreSQL schema. Hibernate uses:
 
