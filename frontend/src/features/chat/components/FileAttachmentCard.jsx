@@ -36,7 +36,7 @@ export default function FileAttachmentCard({ attachment, hideActions = false, hi
       aria-label={canOpen ? filename : undefined}
       title={filename}
     >
-      {getFileIcon(filename, 32)}
+      {getFileIcon(filename, variant === 'dlp-alert' ? 24 : 32)}
       <span className="file-message-copy">
         <strong title={filename}>{filename}</strong>
         <small>{formatBytes(size)}</small>

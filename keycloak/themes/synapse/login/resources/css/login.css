@@ -1,0 +1,219 @@
+:root {
+  --synapse-navy: #243b6b;
+  --synapse-blue: #5d8fca;
+  --synapse-peach: #f7e4d7;
+  --synapse-cream: #fbfaf7;
+  --synapse-ink: #253248;
+  --synapse-muted: #7f8a9b;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 15% 12%, rgba(247, 228, 215, .7), transparent 32%),
+    linear-gradient(135deg, #f5f8ff 0%, var(--synapse-cream) 54%, #fff7f1 100%);
+  color: var(--synapse-ink);
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body,
+body.login-pf {
+  background: var(--synapse-cream) !important;
+  background-image:
+    radial-gradient(circle at 15% 12%, rgba(247, 228, 215, .7), transparent 32%),
+    linear-gradient(135deg, #f5f8ff 0%, var(--synapse-cream) 54%, #fff7f1 100%) !important;
+}
+
+body.login-pf {
+  color: var(--synapse-ink);
+}
+
+.login-pf-page {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 36px 20px 56px;
+}
+
+#kc-header,
+.login-pf-page > .card-pf {
+  width: min(100%, 430px);
+}
+
+#kc-header {
+  flex: 0 0 auto;
+}
+
+.login-pf-page > .card-pf {
+  box-sizing: border-box;
+  margin: 0 !important;
+}
+
+#kc-header,
+#kc-header-wrapper {
+  color: var(--synapse-navy);
+}
+
+#kc-header-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 0 28px;
+  font-size: 0;
+  font-weight: 760;
+  letter-spacing: -.04em;
+}
+
+#kc-header-wrapper::before {
+  width: 46px;
+  height: 52px;
+  content: "";
+  background: url("../img/logo.svg") center / contain no-repeat;
+}
+
+#kc-header-wrapper::after {
+  color: var(--synapse-navy);
+  content: "Synapse";
+  font-size: 25px;
+}
+
+.login-pf-page .card-pf,
+#kc-content-wrapper,
+.pf-v5-c-login__main {
+  border-color: rgba(36, 59, 107, .12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .88);
+  box-shadow: 0 20px 60px rgba(36, 59, 107, .10);
+}
+
+.login-pf-page .card-pf {
+  max-width: 430px;
+  padding: 30px 32px 34px;
+}
+
+#kc-content,
+#kc-content-wrapper {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#kc-locale-dropdown .pf-c-dropdown__menu {
+  display: none;
+}
+
+#kc-locale-dropdown button[aria-expanded="true"] ~ .pf-c-dropdown__menu {
+  display: block;
+}
+
+#kc-page-title,
+.pf-v5-c-login__main-header h1,
+.login-pf-header {
+  color: var(--synapse-navy);
+  font-size: 22px;
+  font-weight: 750;
+  letter-spacing: -.03em;
+}
+
+#kc-page-title::after {
+  display: block;
+  margin-top: 8px;
+  color: var(--synapse-muted);
+  content: "Votre espace de travail sécurisé pour les modèles d’IA.";
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.5;
+}
+
+label,
+.pf-v5-c-form__label {
+  color: #607089;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+.pf-v5-c-form-control {
+  min-height: 44px;
+  border: 1px solid rgba(36, 59, 107, .16);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .9);
+  color: var(--synapse-ink);
+  font-size: 14px;
+}
+
+input:focus,
+.pf-v5-c-form-control:focus {
+  border-color: var(--synapse-blue) !important;
+  box-shadow: 0 0 0 3px rgba(93, 143, 202, .18) !important;
+  outline: none;
+}
+
+#kc-login,
+.pf-v5-c-button.pf-m-primary,
+input[type="submit"] {
+  min-height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--synapse-navy);
+  box-shadow: 0 8px 16px rgba(36, 59, 107, .16);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 750;
+  transition: transform .16s ease, background .16s ease;
+}
+
+#kc-login:hover,
+.pf-v5-c-button.pf-m-primary:hover,
+input[type="submit"]:hover {
+  background: #1b2d53;
+  transform: translateY(-1px);
+}
+
+a,
+.pf-v5-c-button.pf-m-link {
+  color: var(--synapse-navy);
+  font-weight: 650;
+}
+
+#input-error,
+.alert-error,
+.pf-v5-c-alert.pf-m-danger {
+  border-color: rgba(180, 85, 80, .22);
+  border-radius: 10px;
+  background: #fff2f0;
+  color: #a44f4a;
+  font-size: 12px;
+}
+
+@media (max-width: 560px) {
+  .login-pf-page {
+    padding: 24px 14px 36px;
+  }
+
+  .login-pf-page .card-pf {
+    padding: 24px 20px 26px;
+  }
+
+  #kc-header-wrapper {
+    padding-bottom: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}

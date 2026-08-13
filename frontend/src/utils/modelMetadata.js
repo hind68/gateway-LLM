@@ -29,6 +29,7 @@ export function cleanModelName(value, alias) {
 export function displayConversationTitle(title) {
   return String(title || 'Nouvelle conversation')
     .replace(/^Discussion:\s*/i, '')
+    .replace(/^Pi[e\u00e8]ces jointes\s*:\s*/i, '')
     .trim() || 'Nouvelle conversation'
 }
 

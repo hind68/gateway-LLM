@@ -4,9 +4,15 @@ import useMessageStream from './useMessageStream'
 import { logDevelopmentError } from '../../../utils/errors'
 import { focusTextareaOnNextFrame, shouldFocusComposer } from '../utils/composerFocus'
 import { ACCEPTED_ATTACHMENT_EXTENSIONS } from '../utils/attachmentFiles'
+import { loadPendingAttachments, pendingAttachmentKey, savePendingAttachments } from '../utils/pendingAttachments'
 
-export const MAX_ATTACHMENTS = Number.POSITIVE_INFINITY
+export const MAX_ATTACHMENTS = 10
+const MAX_ATTACHMENTS_MESSAGE = "Vous pouvez joindre jusqu'à 10 fichiers par message. Supprimez un fichier avant d'en ajouter un autre."
 export { ACCEPTED_ATTACHMENT_EXTENSIONS }
+
+export function exceedsMaxAttachments(currentCount, selectedCount) {
+  return Number(currentCount || 0) + Number(selectedCount || 0) > MAX_ATTACHMENTS
+}
 
 const GO_BOTTOM_GAP = 12
 const GO_BOTTOM_HEIGHT = 32
@@ -32,6 +38,7 @@ export default function useChatUi({
   const [draft, setDraft] = useState('')
   const [copiedKey, setCopiedKey] = useState('')
   const [attachments, setAttachments] = useState([])
+  const [attachmentError, setAttachmentError] = useState('')
   const [isComposerMaxed, setIsComposerMaxed] = useState(false)
   const [isComposerTransitioning, setIsComposerTransitioning] = useState(false)
   const [goBottomTop, setGoBottomTop] = useState(null)
@@ -40,6 +47,8 @@ export default function useChatUi({
   const composerRef = useRef(null)
   const composerBeforeRectRef = useRef(null)
   const composerTimerRef = useRef(null)
+  const hasLoadedPendingAttachmentsRef = useRef(false)
+  const pendingAttachmentsSaveRef = useRef(Promise.resolve())
   const shouldRestoreComposerFocusRef = useRef(false)
 
   const hasActiveMessages = messages.length > 0
@@ -88,6 +97,7 @@ export default function useChatUi({
     setIsComposerMaxed(textarea.scrollHeight > 150)
   }, [])
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useLayoutEffect(() => {
     const element = composerRef.current
     const before = composerBeforeRectRef.current
@@ -122,10 +132,42 @@ export default function useChatUi({
     resizeTextarea()
   }, [draft, resizeTextarea])
 
+  useEffect(() => {
+    let cancelled = false
+    loadPendingAttachments()
+      .then((pendingAttachments) => {
+        if (cancelled) return
+        setAttachments((current) => {
+          const existingKeys = new Set(current.map(pendingAttachmentKey))
+          const restored = pendingAttachments.filter((file) => !existingKeys.has(pendingAttachmentKey(file)))
+          return [...current, ...restored]
+        })
+      })
+      .catch((error) => {
+        logDevelopmentError('pending attachments restore failed', error)
+      })
+      .finally(() => {
+        if (!cancelled) hasLoadedPendingAttachmentsRef.current = true
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!hasLoadedPendingAttachmentsRef.current) return
+    pendingAttachmentsSaveRef.current = pendingAttachmentsSaveRef.current
+      .catch(() => {})
+      .then(() => savePendingAttachments(attachments))
+      .catch((error) => {
+        logDevelopmentError('pending attachments save failed', error)
+      })
+  }, [attachments])
+
   useLayoutEffect(() => {
     if (!hasActiveMessages) {
-      const frame = window.requestAnimationFrame(() => setGoBottomTop(null))
-      return () => window.cancelAnimationFrame(frame)
+      setGoBottomTop(null)
+      return undefined
     }
 
     const composer = composerRef.current
@@ -147,7 +189,7 @@ export default function useChatUi({
       frame = window.requestAnimationFrame(updateGoBottomTop)
     }
 
-    scheduleUpdate()
+    updateGoBottomTop()
 
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(scheduleUpdate)
     observer?.observe(composer)
@@ -160,6 +202,7 @@ export default function useChatUi({
       window.removeEventListener('resize', scheduleUpdate)
     }
   }, [attachments.length, draft, hasActiveMessages, isComposerMaxed])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => () => {
     if (composerTimerRef.current) {
@@ -201,6 +244,12 @@ export default function useChatUi({
 
   const addAttachments = useCallback((fileList) => {
     const incoming = Array.from(fileList || [])
+    if (incoming.length === 0) return
+    if (exceedsMaxAttachments(attachments.length, incoming.length)) {
+      setAttachmentError(MAX_ATTACHMENTS_MESSAGE)
+      showError(MAX_ATTACHMENTS_MESSAGE)
+      return
+    }
     const accepted = []
     for (const file of incoming) {
       const extension = `.${file.name.split('.').pop() || ''}`.toLowerCase()
@@ -211,17 +260,22 @@ export default function useChatUi({
       accepted.push(file)
     }
     setAttachments((current) => {
-      const existingKeys = new Set(current.map(fileKey))
-      const uniqueAccepted = accepted.filter((file) => !existingKeys.has(fileKey(file)))
+      const existingKeys = new Set(current.map(pendingAttachmentKey))
+      const uniqueAccepted = accepted.filter((file) => !existingKeys.has(pendingAttachmentKey(file)))
+      if (uniqueAccepted.length > 0) setAttachmentError('')
       return [...current, ...uniqueAccepted]
     })
-  }, [showError])
+  }, [attachments.length, showError])
 
   const removeAttachment = useCallback((index) => {
+    setAttachmentError('')
     setAttachments((current) => current.filter((_, itemIndex) => itemIndex !== index))
   }, [])
 
-  const clearAttachments = useCallback(() => setAttachments([]), [])
+  const clearAttachments = useCallback(() => {
+    setAttachmentError('')
+    setAttachments([])
+  }, [])
 
   const onCopy = useCallback(async (text) => {
     if (!text) return false
@@ -239,6 +293,7 @@ export default function useChatUi({
     bottomRef,
     canSend,
     attachments,
+    attachmentError,
     addAttachments,
     clearAttachments,
     composerBeforeRectRef,
@@ -271,8 +326,4 @@ export default function useChatUi({
     removeAttachment,
     textareaRef,
   }
-}
-
-function fileKey(file) {
-  return `${file.name || ''}:${file.size || 0}:${file.type || ''}`
 }

@@ -34,18 +34,17 @@ export default function DocumentInspectorPanel({ attachment: inspectionTarget, c
   const [showTextSizeMenu, setShowTextSizeMenu] = useState(false)
   const textSizeControlRef = useRef(null)
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setActiveTab(initialMode(target))
-      setOriginalState(initialOriginalState())
-      setInspectionState(initialInspectionState(target))
-      setSecureState(initialSecureState(target))
-      setCopySucceeded(false)
-      setFontSize(READER_FONT_SIZE)
-      setShowTextSizeMenu(false)
-    }, 0)
-    return () => window.clearTimeout(timer)
-  }, [attachmentKey, target])
+    setActiveTab(initialMode(target))
+    setOriginalState(initialOriginalState())
+    setInspectionState(initialInspectionState(target))
+    setSecureState(initialSecureState(target))
+    setCopySucceeded(false)
+    setFontSize(READER_FONT_SIZE)
+    setShowTextSizeMenu(false)
+  }, [attachmentKey])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (!attachment) return undefined
@@ -88,7 +87,7 @@ export default function DocumentInspectorPanel({ attachment: inspectionTarget, c
       controller.abort()
       if (previewUrl) URL.revokeObjectURL(previewUrl)
     }
-  }, [attachmentKey, attachment, target.extractedText])
+  }, [attachmentKey])
 
   useEffect(() => {
     if (!showTextSizeMenu) return undefined
@@ -159,7 +158,7 @@ export default function DocumentInspectorPanel({ attachment: inspectionTarget, c
       cancelled = true
       controller.abort()
     }
-  }, [attachmentKey, attachment, target.extractedText, target.matches])
+  }, [attachmentKey])
 
   useEffect(() => {
     if (!attachment) return undefined
@@ -188,7 +187,7 @@ export default function DocumentInspectorPanel({ attachment: inspectionTarget, c
       cancelled = true
       controller.abort()
     }
-  }, [attachmentKey, attachment, target.maskedText])
+  }, [attachmentKey])
 
   const filename = attachment?.filename || attachment?.name || 'Document'
   const extension = fileExtension(filename).toUpperCase() || 'FICHIER'
@@ -467,6 +466,17 @@ function DetectionIndex({ matches, selectedMatchId, text, onSelect }) {
     <div className="document-threat-navigation shrink-0" aria-label="Liste des menaces détectées">
       <div className="document-threat-summary">
         <strong>{threatSummary(counts)}</strong>
+        {canExpand && (
+          <button type="button" className="document-threat-toggle" aria-label={expanded ? 'R\u00e9duire' : 'Voir les autres'} onClick={() => setExpanded((current) => !current)}>
+            <span>{expanded ? 'R\u00e9duire' : 'Voir les autres'}</span>
+            <img
+              src="/assets/down.png"
+              alt=""
+              aria-hidden="true"
+              className={`document-threat-toggle-icon ${expanded ? 'is-expanded' : ''}`}
+            />
+          </button>
+        )}
         <div className="document-threat-filters" aria-label="Filtres des menaces">
           {filters.map((item) => (
             <button
@@ -506,11 +516,6 @@ function DetectionIndex({ matches, selectedMatchId, text, onSelect }) {
           )
         })}
       </div>
-      {canExpand && (
-        <button type="button" className="document-threat-toggle" onClick={() => setExpanded((current) => !current)}>
-          {expanded ? 'Réduire' : 'Voir les autres'}
-        </button>
-      )}
     </div>
   )
 }

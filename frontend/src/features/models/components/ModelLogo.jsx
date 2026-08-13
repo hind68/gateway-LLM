@@ -1,25 +1,15 @@
-import { useState } from 'react'
 import { modelLogoSrc } from '../../../utils/modelMetadata'
 
-export default function ModelLogo({ alias, logoUrl = '', className = '', fallback = '' }) {
-  const logo = logoUrl || modelLogoSrc(alias)
-  const [hasError, setHasError] = useState(false)
+export default function ModelLogo({ alias, className = '', fallback = '' }) {
+  const logo = modelLogoSrc(alias)
 
-  if (!logo || hasError) {
-    return fallback ? (
-      <span className={className} aria-label={fallback}>
-        {fallback}
-      </span>
-    ) : null
+  if (!logo) {
+    return fallback ? <span className={className}>{fallback}</span> : null
   }
 
   return (
-    <span className={`${className} model-logo-image`}>
-      <img
-        src={logo}
-        alt=""
-        onError={() => setHasError(true)}
-      />
+    <span className={className}>
+      <img src={logo} alt="" onError={(event) => { event.currentTarget.style.display = 'none' }} />
     </span>
   )
 }

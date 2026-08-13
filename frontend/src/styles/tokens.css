@@ -5,6 +5,7 @@
   --ui-blue-150: #e5eefc;
   --ui-orange-600: #c46b36;
   --ui-orange-700: #b85d2b;
+  --ui-border-subtle: rgba(31, 41, 55, 0.08);
   --sidebar-surface: rgba(250, 252, 255, 0.88);
   --sidebar-surface-strong: rgba(255, 255, 255, 0.72);
   --sidebar-hover: rgba(32, 37, 47, 0.055);
@@ -19,6 +20,6 @@
   --sidebar-total-open-width: 248px;
   --chat-content-width: 760px;
   --assistant-content-width: var(--chat-content-width);
-  --border-subtle: rgba(31, 41, 55, 0.08);
+  --border-subtle: var(--ui-border-subtle);
 }
 

@@ -1,5 +1,5 @@
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import { CheckIcon, CopyIcon } from '../../../components/common/icons'
+import { CopyIcon } from '../../../components/common/icons'
 import { detectCodeLanguage, formatLanguageName, hashText } from '../utils/markdown'
 import SyntaxHighlighter from '../config/syntaxHighlighter'
 
@@ -9,9 +9,9 @@ export default function CodeBlock({ code, copiedKey, language, onCopy, setCopied
   const isCopied = copiedKey === copyKey
 
   async function copyCode() {
-    const success = await onCopy(code)
-    if (!success) return
     markCopied(copyKey, setCopiedKey)
+    const success = await onCopy(code)
+    if (!success) setCopiedKey((current) => (current === copyKey ? '' : current))
   }
 
   return (
@@ -19,12 +19,13 @@ export default function CodeBlock({ code, copiedKey, language, onCopy, setCopied
       <div className="code-block-header">
         <span>{formatLanguageName(detectedLanguage)}</span>
         <button
+          className={`code-copy-button ${isCopied ? 'is-copied' : ''}`}
           type="button"
           aria-label={isCopied ? 'Copié' : 'Copier le code'}
           title={isCopied ? 'Copié' : 'Copier le code'}
           onClick={copyCode}
         >
-          {isCopied ? <CheckIcon /> : <CopyIcon tone="light" />}
+          {isCopied ? <span className="code-copy-label">Copié</span> : <CopyIcon tone="light" />}
         </button>
       </div>
       <SyntaxHighlighter

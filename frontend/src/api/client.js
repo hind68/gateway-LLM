@@ -9,11 +9,12 @@ const DEFAULT_API_BASE_URL = '/api'
 export const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL)
 
 export class ApiError extends Error {
-  constructor(message, { status, details } = {}) {
+  constructor(message, { status, details, payload } = {}) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.details = details
+    this.payload = payload
   }
 }
 
@@ -87,11 +88,12 @@ function normalizeBaseUrl(value) {
 }
 
 async function createApiError(response) {
-  const details = await readErrorDetails(response)
+  const { details, payload } = await readErrorDetails(response)
   const suffix = details ? ` ${details}` : ''
   return new ApiError(`HTTP ${response.status}${suffix}`, {
     status: response.status,
     details,
+    payload,
   })
 }
 
@@ -100,12 +102,15 @@ async function readErrorDetails(response) {
   try {
     if (contentType.includes('application/json')) {
       const payload = await response.json()
-      if (typeof payload === 'string') return payload
-      return payload?.message || payload?.error || JSON.stringify(payload)
+      if (typeof payload === 'string') return { details: payload, payload: null }
+      return {
+        details: payload?.message || payload?.error || JSON.stringify(payload),
+        payload,
+      }
     }
-    return (await response.text()).trim()
+    return { details: (await response.text()).trim(), payload: null }
   } catch {
-    return ''
+    return { details: '', payload: null }
   }
 }
 

@@ -1,38 +1,45 @@
 ﻿/* Archive tabs and base conversation history */
 .archive-tabs {
   flex-shrink: 0;
-  min-height: 34px;
-  border: 1px solid rgba(37, 48, 67, 0.075);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.62);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 3px;
-  margin: 0 0 8px;
-  padding: 3px;
+  width: 100%;
+  min-height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: #f1f5f9;
+  display: flex;
+  gap: 0;
+  margin: 0 0 12px;
+  padding: 4px;
 }
 
 .archive-tabs button {
+  flex: 1 1 0;
   min-width: 0;
   border: 0;
-  border-radius: 7px;
+  border-radius: 6px;
   background: transparent;
-  color: #68717d;
+  color: #64748b;
   cursor: pointer;
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 650;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.2;
+  padding: 6px 10px;
+  text-align: center;
+  transition:
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease;
 }
 
 .archive-tabs button:hover {
-  background: rgba(32, 37, 47, 0.055);
-  color: #243044;
+  color: #334155;
 }
 
 .archive-tabs button.active {
   background: #ffffff;
-  color: var(--ui-blue-900);
-  box-shadow: 0 1px 4px rgba(25, 35, 52, 0.08);
+  color: #1e293b;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
 }
 
 .history-error {
@@ -250,6 +257,17 @@
 .history-empty {
   color: #777777;
   font-size: 12px;
+}
+
+.recent-section .history-empty {
+  width: var(--sidebar-item-width);
+  box-sizing: border-box;
+  margin: 4px var(--sidebar-item-margin) 0;
+  padding: 8px 10px;
+  color: #8a8a8a;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: break-word;
 }
 
 .history-item small {

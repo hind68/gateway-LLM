@@ -6,6 +6,7 @@ import { ACCEPTED_ATTACHMENT_EXTENSIONS, MAX_ATTACHMENTS } from '../hooks/useCha
 export default function ChatComposer({
   canSend,
   attachments = [],
+  attachmentError = '',
   composerRef,
   draft,
   hasActiveMessages,
@@ -68,6 +69,9 @@ export default function ChatComposer({
             <span aria-hidden="true"></span>
           </button>
         </div>
+      )}
+      {attachmentError && (
+        <p className="composer-attachment-error" role="alert">{attachmentError}</p>
       )}
       <div className="composer-input-row">
       <label className="attach-button" aria-label="Joindre des fichiers" title="Joindre des fichiers">

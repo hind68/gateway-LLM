@@ -102,6 +102,9 @@
 
 .welcome-stack {
   width: min(var(--chat-content-width), calc(100% - 36px));
+  max-width: min(var(--chat-content-width), calc(100% - 36px));
+  min-width: 0;
+  justify-self: center;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -111,6 +114,8 @@
 
 .welcome-stack .composer {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 
@@ -125,7 +130,7 @@
   position: absolute;
   z-index: 50;
   left: 50%;
-  top: var(--go-bottom-top, calc(100% - 176px));
+  top: var(--go-bottom-top);
   transform: translateX(-50%);
   width: 34px;
   height: 32px;

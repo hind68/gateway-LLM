@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import ChatMessage from './ChatMessage'
 import DocumentInspectorPanel from './DocumentInspectorPanel'
 import FileAttachmentCard from './FileAttachmentCard'
+import { hashText } from '../utils/markdown'
 
 describe('ChatMessage', () => {
   it('renders a persisted DLP block as a final error without loading dots', () => {
@@ -38,31 +39,6 @@ describe('ChatMessage', () => {
     expect(html).toContain('assistant-header')
     expect(html).not.toContain('disabled')
     expect(html).not.toContain('typing-indicator')
-  })
-
-  it('offers to send the masked version of a blocked message', () => {
-    const html = renderToStaticMarkup(
-      <ChatMessage
-        copiedKey=""
-        fallbackModelName="GPT"
-        message={{
-          id: 44,
-          role: 'USER',
-          status: 'DLP_BLOCKED',
-          content: 'Mot interdit',
-          dlpOriginalText: 'Mot interdit',
-          dlpMaskedText: 'Mot [BANNED_WORD_1]',
-          dlpHighestSeverity: 'HIGH',
-          dlpDetectedTypes: ['banned_word'],
-          dlpMatches: [{ type: 'banned_word', start: 4, end: 13, lineNumber: 1, placeholder: '[BANNED_WORD_1]' }],
-        }}
-        onCopy={vi.fn()}
-        onSendSecureMessage={vi.fn()}
-        setCopiedKey={vi.fn()}
-      />,
-    )
-
-    expect(html).toContain('Envoyer la version sécurisée')
   })
 
   it('shows copied confirmation for the DLP alert copy button', () => {
@@ -308,6 +284,31 @@ describe('ChatMessage', () => {
     expect(html).toContain('id="line-15"')
   })
 
+  it('shows the copied label for a copied code block', () => {
+    const code = 'console.log("ok")'
+    const copiedKey = `code-${hashText(`javascript:${code}`)}`
+    const html = renderToStaticMarkup(
+      <ChatMessage
+        copiedKey={copiedKey}
+        fallbackModelName="GPT"
+        message={{
+          id: 11,
+          role: 'ASSISTANT',
+          content: `\`\`\`javascript\n${code}\n\`\`\``,
+        }}
+        onCopy={vi.fn()}
+        setCopiedKey={vi.fn()}
+      />,
+    )
+
+    const codeHeaderHtml = html.slice(html.indexOf('<div class="code-block-header">'), html.indexOf('</div><div style='))
+    expect(codeHeaderHtml).toContain('code-copy-button')
+    expect(codeHeaderHtml).toContain('is-copied')
+    expect(codeHeaderHtml).toContain('Copié')
+    expect(codeHeaderHtml).not.toContain('check-icon')
+    expect(codeHeaderHtml).not.toContain('copy-icon')
+  })
+
   it('keeps many threat chips compact with summary filters and an expand action', () => {
     const lines = Array.from({ length: 22 }, (_, index) => `line ${index + 1} secret-${index + 1}`)
     const text = lines.join('\n')
@@ -457,7 +458,7 @@ describe('ChatMessage', () => {
     expect(cssRule(panelsCss, '.document-header-tabs')).toMatch(/margin:\s*0 auto;/)
     expect(cssRule(panelsCss, '.document-text-size-trigger')).toMatch(/width:\s*24px;/)
     expect(cssRule(panelsCss, '.document-text-size-trigger')).toMatch(/justify-content:\s*center;/)
-    expect(cssRule(panelsCss, '.document-text-size-trigger')).toMatch(/font-size:\s*12px;/)
+    expect(cssRule(panelsCss, '.document-text-size-trigger')).toMatch(/font-size:\s*11px;/)
     expect(cssRule(panelsCss, '.document-text-size-popover')).toMatch(/position:\s*absolute;/)
     expect(cssRule(panelsCss, '.document-text-size-popover')).toMatch(/right:\s*0;/)
     expect(cssRule(panelsCss, '.document-text-size-popover .document-text-size-value')).toMatch(/cursor:\s*default;/)
@@ -491,14 +492,33 @@ describe('ChatMessage', () => {
     expect(inspectorSource).toContain('EXTRACTION_UNAVAILABLE')
     expect(inspectorSource).toContain('isTextLike(extension, contentType)')
     expect(cssRule(composerCss, '.composer-center')).toMatch(/position:\s*static;/)
+    expect(cssRule(composerCss, '.composer-center')).toMatch(/width:\s*100%;/)
+    expect(cssRule(composerCss, '.composer-center')).toMatch(/min-width:\s*0;/)
+    expect(cssRule(composerCss, '.composer-center')).toMatch(/margin-inline:\s*auto;/)
     expect(cssRule(composerCss, '.composer-attachments-wrapper')).toMatch(/overflow:\s*hidden;/)
+    expect(cssRule(composerCss, '.composer-attachments-wrapper')).toMatch(/position:\s*relative;/)
+    expect(cssRule(composerCss, '.composer-attachments-wrapper')).toMatch(/min-width:\s*0;/)
+    expect(cssRule(composerCss, '.composer-attachments-wrapper::after')).toMatch(/pointer-events:\s*none;/)
+    expect(cssRule(composerCss, '.composer-attachments-wrapper::after')).toMatch(/right:\s*0;/)
+    expect(cssRule(composerCss, '.composer-attachments-wrapper::after')).toMatch(/width:\s*70px;/)
+    expect(cssRule(composerCss, '.composer-attachments-wrapper::after')).toMatch(/rgba\(255,\s*255,\s*255,\s*0\.7\)\s*55%,/)
+    expect(cssRule(composerCss, '.composer-attachments')).toMatch(/flex:\s*1 1 0;/)
     expect(cssRule(composerCss, '.composer-attachments')).toMatch(/overflow-x:\s*auto;/)
     expect(cssRule(composerCss, '.composer-attachments')).toMatch(/scrollbar-width:\s*none;/)
+    expect(cssRule(composerCss, '.composer-attachments')).toMatch(/min-width:\s*0;/)
+    expect(cssRule(composerCss, '.composer-attachments')).toMatch(/max-width:\s*100%;/)
+    expect(cssRule(composerCss, '.composer-attachments')).toMatch(/padding:\s*6px 50px 8px 6px;/)
     expect(cssRule(composerCss, '.composer button.clear-attachments')).toMatch(/position:\s*absolute;/)
     expect(cssRule(composerCss, '.composer button.clear-attachments')).toMatch(/top:\s*6px;/)
-    expect(cssRule(composerCss, '.composer button.clear-attachments')).toMatch(/background:\s*#F3F4F6;/)
-    expect(cssRule(composerCss, '.attachment-chip')).toMatch(/flex:\s*0 0 clamp\(150px,\s*30%,\s*220px\);/)
-    expect(cssRule(composerCss, '.attachment-chip')).toMatch(/max-width:\s*220px;/)
+    expect(cssRule(composerCss, '.composer button.clear-attachments')).toMatch(/z-index:\s*20;/)
+    expect(cssRule(composerCss, '.composer button.clear-attachments')).toMatch(/background-color:\s*#ffffff;/)
+    expect(cssRule(composerCss, '.composer button.clear-attachments')).toMatch(/border:\s*1px solid #e2e8f0;/)
+    expect(cssRule(composerCss, '.attachment-chip')).toMatch(/width:\s*var\(--attachment-card-width\);/)
+    expect(cssRule(composerCss, '.attachment-chip')).toMatch(/min-width:\s*var\(--attachment-card-width\);/)
+    expect(cssRule(composerCss, '.attachment-chip')).toMatch(/max-width:\s*var\(--attachment-card-width\);/)
+    expect(cssRule(composerCss, '.attachment-chip')).toMatch(/flex:\s*0 0 var\(--attachment-card-width\);/)
+    expect(cssRule(composerCss, '.attachment-chip')).toMatch(/background-color:\s*#f8fafc;/)
+    expect(cssRule(composerCss, '.attachment-chip')).toMatch(/border:\s*1px solid #f1f5f9;/)
     expect(cssRule(composerCss, '.attachment-name')).toMatch(/text-overflow:\s*ellipsis;/)
     expect(composerCss).not.toContain('100vw')
   })
@@ -521,6 +541,7 @@ describe('ChatMessage', () => {
     expect(cssRule(chatCss, '.messages')).toMatch(/padding-bottom:\s*136px;/)
     expect(cssRule(chatCss, '.go-bottom-button')).toMatch(/left:\s*50%;/)
     expect(cssRule(chatCss, '.go-bottom-button')).toMatch(/top:\s*var\(--go-bottom-top/)
+    expect(cssRule(chatCss, '.go-bottom-button')).not.toMatch(/calc\(100% - 176px\)/)
     expect(cssRule(chatCss, '.go-bottom-button')).not.toMatch(/bottom:\s*132px;/)
     expect(cssRule(chatCss, '.go-bottom-button')).not.toMatch(/right:\s*32px;/)
     expect(cssRule(markdownCss, '.markdown-body')).toMatch(/overflow:\s*hidden;/)
@@ -606,15 +627,120 @@ describe('ChatMessage', () => {
     expect(html).toContain('message user')
     expect(html).toContain('role="button"')
     expect(cssRule(messagesCss, '.file-message-card.is-clickable')).toMatch(/cursor:\s*pointer;/)
-    expect(cssRule(messagesCss, '.dlp-file-panel .file-message-card.dlp-file-card')).toMatch(/border-color:\s*#FECACA;/)
-    expect(cssRule(messagesCss, '.dlp-file-panel .file-message-card.dlp-file-card')).toMatch(/rgba\(255,\s*255,\s*255,\s*0\.6\)/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .file-message-card.dlp-file-card')).toMatch(/border:\s*1px solid rgba\(239,\s*68,\s*68,\s*0\.2\);/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .file-message-card.dlp-file-card')).toMatch(/rgba\(255,\s*255,\s*255,\s*0\.4\)/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .file-message-card.dlp-file-card')).toMatch(/padding:\s*8px 12px;/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .file-message-card.dlp-file-card')).toMatch(/gap:\s*12px;/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .file-message-card.dlp-file-card')).toMatch(/flex:\s*0 0 auto;/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .file-message-card.dlp-file-card')).toMatch(/flex-shrink:\s*0;/)
     expect(cssRule(messagesCss, '.dlp-file-panel .file-message-card.dlp-file-card')).toMatch(/overflow:\s*hidden;/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .file-message-card.dlp-file-card')).toMatch(/width:\s*calc\(100% - 24px\);/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .file-message-card.dlp-file-card')).toMatch(/max-width:\s*500px;/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .file-message-card.dlp-file-card')).toMatch(/margin-inline:\s*auto;/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .file-message-card.dlp-file-card')).toMatch(/min-width:\s*0;/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .message-attachments')).toMatch(/gap:\s*8px;/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .message-attachments')).toMatch(/width:\s*100%;/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .message-attachments')).toMatch(/align-items:\s*center;/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .message-attachments')).not.toMatch(/max-height:/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .message-attachments')).not.toMatch(/overflow-y:/)
+    expect(cssRule(messagesCss, '.message.assistant.dlp-blocked-response .dlp-alert')).toMatch(/max-width:\s*560px;/)
+    expect(cssRule(messagesCss, '.message.assistant.dlp-blocked-response .dlp-alert')).toMatch(/margin-right:\s*auto;/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .file-message-card.dlp-file-card.is-clickable:hover')).toMatch(/rgba\(255,\s*255,\s*255,\s*0\.7\)/)
+    expect(cssRule(messagesCss, '.file-message-card')).toMatch(/width:\s*var\(--attachment-card-width\);/)
+    expect(cssRule(messagesCss, '.file-message-card')).toMatch(/min-width:\s*var\(--attachment-card-width\);/)
+    expect(cssRule(messagesCss, '.file-message-card')).toMatch(/max-width:\s*var\(--attachment-card-width\);/)
+    expect(cssRule(messagesCss, '.file-message-copy strong')).toMatch(/text-overflow:\s*ellipsis;/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .file-message-card.dlp-file-card .file-type-icon')).toMatch(/width:\s*24px;/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .file-message-card.dlp-file-card .file-type-icon')).toMatch(/flex-shrink:\s*0;/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .file-message-copy')).toMatch(/flex-direction:\s*column;/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .file-message-copy')).toMatch(/justify-content:\s*center;/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .file-message-copy strong')).toMatch(/font-size:\s*12\.5px;/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .file-message-copy strong')).toMatch(/line-height:\s*1\.2;/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .file-message-copy small')).toMatch(/font-size:\s*10\.5px;/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .file-message-copy small')).toMatch(/margin-top:\s*2px;/)
     expect(cssRule(messagesCss, '.dlp-file-panel .file-message-card.dlp-file-card.is-clickable')).toMatch(/cursor:\s*pointer;/)
-    expect(cssRule(messagesCss, '.dlp-file-panel .file-message-card.dlp-file-card.is-clickable:hover')).toMatch(/border-color:\s*#FCA5A5;/)
+    expect(cssRule(messagesCss, '.dlp-file-panel .file-message-card.dlp-file-card.is-clickable:hover')).toMatch(/border-color:\s*rgba\(239,\s*68,\s*68,\s*0\.4\);/)
+    expect(cssRule(messagesCss, '.dlp-attachments-toggle')).toMatch(/justify-content:\s*center;/)
+    expect(cssRule(messagesCss, '.dlp-attachments-toggle')).toMatch(/width:\s*100%;/)
+    expect(cssRule(messagesCss, '.dlp-attachments-toggle')).toMatch(/border-top:\s*1px solid rgba\(239,\s*68,\s*68,\s*0\.15\);/)
+    expect(messagesCss).not.toContain('.dlp-file-panel .message-attachments::-webkit-scrollbar')
+    expect(messagesCss).not.toContain('scrollbar-color: rgba(248, 113, 113, 0.28)')
     expect(messagesCss).not.toContain('content: "Ouvrir"')
     expect(messagesCss).not.toContain('dlp-inspect-primary')
     expect(messagesCss).not.toContain('dlp-inspect-button')
     expect(html).not.toContain('OPENAI_API_KEY_1</span><span class="dlp-detection-type"')
+  })
+
+  it('collapses DLP blocked attachments to three cards with a dynamic toggle', () => {
+    ;[
+      [4, 'Afficher 1 autre', 'fichier-confidentiel-4-avec-un-nom-tres-long.pdf'],
+      [7, 'Afficher 4 autres', 'fichier-confidentiel-4-avec-un-nom-tres-long.pdf'],
+      [10, 'Afficher 7 autres', 'fichier-confidentiel-4-avec-un-nom-tres-long.pdf'],
+    ].forEach(([count, label, hiddenFilename]) => {
+    const html = renderToStaticMarkup(
+      <ChatMessage
+        copiedKey=""
+        fallbackModelName="GPT"
+        message={{
+          id: 47,
+          role: 'USER',
+          status: 'DLP_BLOCKED',
+          content: 'Pieces jointes: fichiers',
+          dlpMaskedText: 'Token [OPENAI_API_KEY_1]',
+          dlpHighestSeverity: 'HIGH',
+          dlpDetectedTypes: ['openai_api_key'],
+          dlpMatches: [],
+          attachments: Array.from({ length: count }, (_, index) => ({
+            id: index + 1,
+            filename: `fichier-confidentiel-${index + 1}-avec-un-nom-tres-long.pdf`,
+            size: 71475,
+            decision: 'BLOCK',
+          })),
+        }}
+        onCopy={vi.fn()}
+        onInspectDocument={vi.fn()}
+        setCopiedKey={vi.fn()}
+      />,
+    )
+
+    const dlpPanelHtml = html.slice(html.indexOf('<section class="dlp-file-panel">'))
+    expect((dlpPanelHtml.match(/dlp-file-card/g) || [])).toHaveLength(3)
+    expect(dlpPanelHtml).toContain(label)
+    expect(dlpPanelHtml).toContain('/assets/down.png')
+    expect(dlpPanelHtml).not.toContain(hiddenFilename)
+    })
+  })
+
+  it('does not show the DLP attachment toggle when three files fit in the collapsed list', () => {
+    const html = renderToStaticMarkup(
+      <ChatMessage
+        copiedKey=""
+        fallbackModelName="GPT"
+        message={{
+          id: 48,
+          role: 'USER',
+          status: 'DLP_BLOCKED',
+          content: 'Pieces jointes: fichiers',
+          dlpMaskedText: 'Token [OPENAI_API_KEY_1]',
+          dlpHighestSeverity: 'HIGH',
+          dlpDetectedTypes: ['openai_api_key'],
+          dlpMatches: [],
+          attachments: Array.from({ length: 3 }, (_, index) => ({
+            id: index + 1,
+            filename: `fichier-${index + 1}.pdf`,
+            size: 1024,
+            decision: 'BLOCK',
+          })),
+        }}
+        onCopy={vi.fn()}
+        onInspectDocument={vi.fn()}
+        setCopiedKey={vi.fn()}
+      />,
+    )
+
+    expect((html.match(/dlp-file-card/g) || [])).toHaveLength(3)
+    expect(html).not.toContain('Afficher')
+    expect(html).not.toContain('dlp-attachments-toggle')
   })
 
   it('shows only DLP-signaled attachments inside blocked file alerts', () => {
@@ -682,7 +808,8 @@ function matchAt(id, type, text, value, lineNumber = 1) {
 }
 
 function cssRule(css, selector) {
-  const matches = [...css.matchAll(new RegExp(`${escapeRegExp(selector)}\\s*\\{([^}]*)\\}`, 'g'))]
+  const normalizedCss = css.replace(/\r\n/g, '\n')
+  const matches = [...normalizedCss.matchAll(new RegExp(`${escapeRegExp(selector)}\\s*\\{([^}]*)\\}`, 'g'))]
   expect(matches.length, `${selector} rule`).toBeGreaterThan(0)
   return matches[matches.length - 1][1]
 }

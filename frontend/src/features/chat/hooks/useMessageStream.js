@@ -118,7 +118,7 @@ export default function useMessageStream({
     return `${prefix}-${localIdCounterRef.current}`
   }, [])
 
-  const streamMessage = useCallback(async (conversation, prompt, attachments = []) => {
+  const streamMessage = useCallback(async (conversation, prompt, attachments = [], options = {}) => {
     const modelName = modelDisplayName(conversation.modelAlias)
     // Optimistic local ids keep the UI stable while the backend persists and returns server ids.
     const localUserId = nextLocalId('local-user')
@@ -153,6 +153,7 @@ export default function useMessageStream({
       const response = await streamConversationMessage(conversation.id, prompt, abortController.signal, attachments)
 
       if (!response.ok || !response.body) throw new Error('Erreur pendant le streaming LiteLLM')
+      options.onMessageAccepted?.()
 
       const reader = response.body.getReader()
       const decoder = new TextDecoder()

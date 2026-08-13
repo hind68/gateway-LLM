@@ -21,7 +21,7 @@ export default function useModels({ activeConversation, onError, onLoaded }) {
     try {
       const data = await fetchModelDetails()
       const normalized = Array.isArray(data)
-        ? data.map((item) => ({ ...item, alias: item.alias, displayName: cleanModelName(item.displayName || item.alias, item.alias) }))
+        ? data.map((item) => ({ alias: item.alias, displayName: cleanModelName(item.displayName || item.alias, item.alias) }))
         : []
       setModels(normalized)
       setSelectedModel((current) => selectAvailableModel(normalized, current))

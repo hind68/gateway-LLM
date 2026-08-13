@@ -39,7 +39,28 @@ describe('api client', () => {
       name: 'ApiError',
       status: 400,
       details: 'nope',
+      payload: { message: 'nope' },
     })
     await expect(apiFetch('/bad')).rejects.toBeInstanceOf(ApiError)
+  })
+
+  it('preserves structured backend error payloads', async () => {
+    const payload = {
+      code: 'ATTACHMENT_LIMIT_EXCEEDED',
+      message: "Vous pouvez joindre jusqu'a 10 fichiers par message.",
+      maxFiles: 10,
+      receivedFiles: 11,
+    }
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(payload), {
+      headers: { 'content-type': 'application/json' },
+      status: 400,
+    })))
+
+    await expect(apiFetch('/bad')).rejects.toMatchObject({
+      name: 'ApiError',
+      status: 400,
+      details: payload.message,
+      payload,
+    })
   })
 })

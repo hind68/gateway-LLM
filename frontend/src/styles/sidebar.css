@@ -3,6 +3,10 @@
   --sidebar-closed-width: 56px;
   --sidebar-open-width: 248px;
   --sidebar-total-open-width: 248px;
+  --sidebar-item-margin: 8px;
+  --sidebar-item-width: calc(100% - 16px);
+  --sidebar-item-radius: 9px;
+  --sidebar-hover-subtle: rgba(32, 37, 47, 0.045);
 }
 
 .sidebar {
@@ -116,13 +120,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 42px;
+  flex: 0 0 32px;
   margin-right: 8px;
-  transition: background-color 0.2s ease;
+  transition: background-color 140ms ease;
 }
 
 .sidebar-toggle:hover {
-  background-color: #F3F4F6;
+  background-color: var(--sidebar-hover-subtle);
 }
 
 .sidebar-toggle img {
@@ -150,20 +154,22 @@
 
 .sidebar-navigation button {
   min-width: 0;
-  width: var(--sidebar-open-width);
+  width: var(--sidebar-item-width);
   height: 36px;
-  border-radius: 10px;
+  border-radius: var(--sidebar-item-radius);
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr);
+  grid-template-columns: 48px minmax(0, 1fr);
   align-items: center;
   gap: 0;
+  margin: 0 var(--sidebar-item-margin);
   padding: 0;
   text-align: left;
   overflow: hidden;
+  transition: background-color 140ms ease, color 140ms ease;
 }
 
 .sidebar-navigation button:hover {
-  background: var(--sidebar-hover);
+  background: var(--sidebar-hover-subtle);
 }
 
 .sidebar-navigation button.active {
@@ -174,7 +180,7 @@
 .sidebar-icon,
 .user-avatar-wrapper {
   position: relative;
-  width: 56px;
+  width: 48px;
   height: 36px;
   display: grid;
   place-items: center;
@@ -185,9 +191,9 @@
   content: '';
   position: absolute;
   inset: 0;
-  width: 40px;
+  width: 36px;
   height: 36px;
-  border-radius: 10px;
+  border-radius: var(--sidebar-item-radius);
   margin: auto;
   background: transparent;
   transition: background-color 120ms ease;
@@ -211,7 +217,7 @@
 
 .sidebar-closed .sidebar-navigation button:hover .sidebar-icon::before,
 .sidebar-closed .sidebar-navigation button.active .sidebar-icon::before {
-  background: var(--sidebar-hover);
+  background: var(--sidebar-hover-subtle);
 }
 
 .sidebar-navigation img {
@@ -246,7 +252,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 0 8px;
+  padding: 0;
 }
 
 .recent-section .history-heading {
@@ -255,8 +261,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
-  padding: 2px 4px 0 8px;
+  width: var(--sidebar-item-width);
+  margin: 0 var(--sidebar-item-margin) 6px;
+  padding: 2px 2px 0 10px;
 }
 
 .recent-section .history-heading span {
@@ -276,12 +283,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-right: -2px;
   padding: 0;
-  transition: background-color 0.2s ease;
+  transition: background-color 140ms ease;
 }
 
 .archive-toggle:hover {
-  background-color: #F3F4F6;
+  background-color: var(--sidebar-hover-subtle);
 }
 
 .archive-toggle img {
@@ -307,17 +315,19 @@
 }
 
 .sidebar-user > button {
-  width: var(--sidebar-open-width);
+  width: var(--sidebar-item-width);
   min-width: 0;
   height: 40px;
-  border-radius: 12px;
+  border-radius: var(--sidebar-item-radius);
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr);
+  grid-template-columns: 48px minmax(0, 1fr);
   align-items: center;
   gap: 0;
+  margin: 0 var(--sidebar-item-margin);
   padding: 0;
   text-align: left;
   overflow: hidden;
+  transition: background-color 140ms ease;
 }
 
 .user-avatar-wrapper {
@@ -325,7 +335,7 @@
 }
 
 .sidebar-user > button:hover {
-  background: var(--sidebar-hover);
+  background: var(--sidebar-hover-subtle);
 }
 
 .sidebar-closed .sidebar-user > button:hover {
@@ -333,7 +343,7 @@
 }
 
 .sidebar-closed .sidebar-user > button:hover .user-avatar-wrapper::before {
-  background: var(--sidebar-hover);
+  background: var(--sidebar-hover-subtle);
 }
 
 .user-avatar {
@@ -440,7 +450,18 @@
   width: var(--sidebar-open-width);
   height: 36px;
   grid-template-columns: 56px minmax(0, 1fr);
+  margin: 0;
   padding: 0;
+}
+
+.sidebar-closed .sidebar-icon,
+.sidebar-closed .user-avatar-wrapper {
+  width: 56px;
+}
+
+.sidebar-closed .sidebar-icon::before,
+.sidebar-closed .user-avatar-wrapper::before {
+  width: 40px;
 }
 
 .sidebar-closed .sidebar-user {
@@ -453,6 +474,7 @@
   width: var(--sidebar-open-width);
   height: 40px;
   grid-template-columns: 56px minmax(0, 1fr);
+  margin: 0;
   padding: 0;
 }
 

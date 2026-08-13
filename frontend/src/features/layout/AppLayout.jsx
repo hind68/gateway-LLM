@@ -133,6 +133,10 @@ export default function AppLayout({
     window.addEventListener('pointercancel', handlePointerUp)
   }, [inspectorWidth])
 
+  if (admin?.showAdminDashboard) {
+    return <AdminDashboard onError={admin.onError} onNotice={admin.onNotice} onBackToChat={() => admin.setShowAdminDashboard(false)} />
+  }
+
   return (
     <div className={`app-shell ${layout.isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       <Sidebar

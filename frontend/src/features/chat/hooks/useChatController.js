@@ -52,7 +52,6 @@ export default function useChatController({
     actions.newConversationRecord(modelAlias)
     chat.setMessages([])
     chat.setDraft('')
-    chat.clearAttachments()
     chat.setIsLastBlockVisible(true)
     shouldAutoScrollRef.current = true
   }, [actions, chat, models.selectedModel, shouldAutoScrollRef])
@@ -75,35 +74,20 @@ export default function useChatController({
       composerBeforeRectRef.current = composerRef.current.getBoundingClientRect()
     }
     chat.setDraft('')
-    chat.clearAttachments()
     chat.restoreComposerFocusSoon()
     chat.setIsLastBlockVisible(true)
     shouldAutoScrollRef.current = true
 
     try {
       const conversation = await actions.ensureConversation(prompt)
-      void chat.streamMessage(conversation, prompt, attachments)
+      void chat.streamMessage(conversation, prompt, attachments, {
+        onMessageAccepted: chat.clearAttachments,
+      })
     } catch (error) {
       feedback.showError(friendlyGenerationError(error))
       chat.restoreComposerFocusSoon()
     }
   }, [actions, chat, composerBeforeRectRef, composerRef, feedback, shouldAutoScrollRef, status.isGenerating])
-
-  const sendSecureMessage = useCallback(async (safeContent) => {
-    if (status.isGenerating || !state.activeConversation) return
-    const prompt = String(safeContent || '').trim()
-    if (!prompt) return
-
-    feedback.clearChatError()
-    chat.setIsLastBlockVisible(true)
-    shouldAutoScrollRef.current = true
-
-    try {
-      void chat.streamMessage(state.activeConversation, prompt, [])
-    } catch (error) {
-      feedback.showError(friendlyGenerationError(error))
-    }
-  }, [chat, feedback, shouldAutoScrollRef, state.activeConversation, status.isGenerating])
 
   const archiveConversation = useCallback(async (conversation = state.activeConversation) => {
     const result = await actions.archiveConversationRecord(conversation)
@@ -162,7 +146,6 @@ export default function useChatController({
     openNewConversationWithModel,
     selectModel,
     sendMessage,
-    sendSecureMessage,
   }
 }
 

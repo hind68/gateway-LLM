@@ -33,7 +33,11 @@ export default function ConversationList({
 
       <div className="history">
         {isLoadingHistory && <div className="history-empty">Chargement...</div>}
-        {!isLoadingHistory && !historyError && conversations.length === 0 && <div className="history-empty">Aucune conversation</div>}
+        {!isLoadingHistory && !historyError && conversations.length === 0 && (
+          <div className="history-empty">
+            {showArchived ? 'Aucune conversation archivée' : 'Aucune conversation'}
+          </div>
+        )}
         {conversations.map((conversation) => (
           <ConversationItem
             activeConversation={activeConversation}

@@ -117,13 +117,14 @@ Important:
 - `.env` is ignored by Git.
 - Keep `LITELLM_MASTER_KEY` identical for LiteLLM and the backend.
 - Port `5433` is used on the host to avoid common conflicts with local PostgreSQL on `5432`.
+- Set the local-only Keycloak variables from `.env.example` in `.env`; the Keycloak administrator password and `gateway-admin` client secret are never committed.
 
 ## 2. Start Docker Services
 
 From the project root:
 
 ```powershell
-docker compose up -d postgres litellm
+docker compose up -d postgres litellm keycloak-db keycloak keycloak-provisioner
 ```
 
 Check the containers:
@@ -137,7 +138,16 @@ Useful logs:
 ```powershell
 docker compose logs -f postgres
 docker compose logs -f litellm
+docker compose logs -f keycloak
 ```
+
+Keycloak is available at `http://localhost:8080`. The first startup imports the
+`synapse` realm, activates the Synapse login theme, creates the `INTERN` and
+`EXTERN` roles, and provisions the confidential `gateway-admin` service client.
+The Keycloak database is stored in the `keycloak_postgres_data` volume. The
+one-shot provisioner may show as exited successfully after startup; rerun it
+with `docker compose run --rm keycloak-provisioner` after changing realm
+automation.
 
 ## 3. Run the Backend
 
@@ -149,6 +159,13 @@ $env:LITELLM_MASTER_KEY="sk-local-litellm"
 $env:SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5433/secure_llm_gateway"
 $env:SPRING_DATASOURCE_USERNAME="secure_llm_user"
 $env:SPRING_DATASOURCE_PASSWORD="change_me_local_only"
+$env:KEYCLOAK_ADMIN_BASE_URL="http://localhost:8080"
+$env:KEYCLOAK_ADMIN_REALM="synapse"
+$env:KEYCLOAK_ADMIN_TOKEN_REALM="synapse"
+$env:KEYCLOAK_ADMIN_CLIENT_ID="gateway-admin"
+$env:KEYCLOAK_ADMIN_CLIENT_SECRET="<the local-only value from .env>"
+# On Windows, use IPv4 if Java times out while reading Keycloak on localhost.
+$env:JAVA_TOOL_OPTIONS="-Djava.net.preferIPv4Stack=true"
 cmd /c mvnw.cmd spring-boot:run
 ```
 

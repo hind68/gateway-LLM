@@ -31,10 +31,13 @@ describe('MarkdownContent images', () => {
   })
 
   it('keeps image URL validation limited to valid http and https URLs', () => {
+    expect(isRenderableMarkdownImageUrl('/assets/test.png')).toBe(true)
     expect(isRenderableMarkdownImageUrl('https://example.com/image.png')).toBe(true)
     expect(isRenderableMarkdownImageUrl('http://example.com/image.png')).toBe(true)
+    expect(isRenderableMarkdownImageUrl('javascript:alert(1)')).toBe(false)
+    expect(isRenderableMarkdownImageUrl('data:image/png;base64,abc')).toBe(false)
+    expect(isRenderableMarkdownImageUrl('')).toBe(false)
     expect(isRenderableMarkdownImageUrl('ftp://example.com/image.png')).toBe(false)
-    expect(isRenderableMarkdownImageUrl('/image.png')).toBe(false)
     expect(isRenderableMarkdownImageUrl('not a url')).toBe(false)
   })
 })
