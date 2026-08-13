@@ -8,7 +8,7 @@ import { dlpUserMessage } from '../utils/dlpErrors'
 import { splitMaskedTextByPlaceholders, normalizeSensitiveSpans, splitTextBySpans } from '../utils/dlpViews'
 import { detectTextDirection } from '../utils/markdown'
 
-function ChatMessage({ copiedKey, fallbackModelAlias, fallbackModelName, message, onCopy, onInspectDocument, setCopiedKey }) {
+function ChatMessage({ copiedKey, fallbackModelAlias, fallbackModelName, message, onCopy, onInspectDocument, onSendSecureMessage, setCopiedKey }) {
   const isUser = message.role === 'USER'
   const isDlpBlocked = message.status === 'DLP_BLOCKED'
   const effectiveModelAlias = message.modelAlias || fallbackModelAlias || fallbackModelName
@@ -70,6 +70,7 @@ function ChatMessage({ copiedKey, fallbackModelAlias, fallbackModelName, message
               onCopyAlert={(text) => copyResponse(alertCopyKey, text)}
               onCopySafe={(text) => copyResponse(safeCopyKey, text)}
               onInspectDocument={onInspectDocument}
+              onSendSecure={onSendSecureMessage}
             />
           </div>
         </article>
@@ -137,12 +138,14 @@ function ChatMessage({ copiedKey, fallbackModelAlias, fallbackModelName, message
   )
 }
 
-function DlpBlockedMessage({ alertCopied, copied, message, onCopyAlert, onCopySafe, onInspectDocument }) {
+function DlpBlockedMessage({ alertCopied, copied, message, onCopyAlert, onCopySafe, onInspectDocument, onSendSecure }) {
   const [showSafe, setShowSafe] = useState(false)
   const [showOriginal, setShowOriginal] = useState(false)
   const matches = useMemo(() => message.dlpMatches || [], [message.dlpMatches])
-  const attachments = Array.isArray(message.attachments) ? message.attachments : []
-  const blockedAttachments = useMemo(() => attachments.filter((attachment) => hasDlpAttachmentSignal(attachment, matches, attachments.length)), [attachments, matches])
+  const blockedAttachments = useMemo(() => {
+    const attachments = Array.isArray(message.attachments) ? message.attachments : []
+    return attachments.filter((attachment) => hasDlpAttachmentSignal(attachment, matches, attachments.length))
+  }, [message.attachments, matches])
   const hasDlpFiles = blockedAttachments.length > 0
   const safeText = message.dlpMaskedText || ''
   const originalText = message.dlpOriginalText || ''
@@ -212,6 +215,11 @@ function DlpBlockedMessage({ alertCopied, copied, message, onCopyAlert, onCopySa
           >
             {showOriginal ? 'Masquer la localisation' : 'Localiser dans mon message'}
           </button>
+          {onSendSecure && safeText && (
+            <button type="button" className="dlp-send-secure-button" onClick={() => onSendSecure(safeText)}>
+              Envoyer la version sécurisée
+            </button>
+          )}
         </div>
       )}
       {!hasDlpFiles && showSafe && (
@@ -425,6 +433,7 @@ function areChatMessagesEqual(previous, next) {
     previous.fallbackModelName === next.fallbackModelName &&
     previous.onCopy === next.onCopy &&
     previous.onInspectDocument === next.onInspectDocument &&
+    previous.onSendSecureMessage === next.onSendSecureMessage &&
     previous.setCopiedKey === next.setCopiedKey
   )
 

@@ -40,6 +40,31 @@ describe('ChatMessage', () => {
     expect(html).not.toContain('typing-indicator')
   })
 
+  it('offers to send the masked version of a blocked message', () => {
+    const html = renderToStaticMarkup(
+      <ChatMessage
+        copiedKey=""
+        fallbackModelName="GPT"
+        message={{
+          id: 44,
+          role: 'USER',
+          status: 'DLP_BLOCKED',
+          content: 'Mot interdit',
+          dlpOriginalText: 'Mot interdit',
+          dlpMaskedText: 'Mot [BANNED_WORD_1]',
+          dlpHighestSeverity: 'HIGH',
+          dlpDetectedTypes: ['banned_word'],
+          dlpMatches: [{ type: 'banned_word', start: 4, end: 13, lineNumber: 1, placeholder: '[BANNED_WORD_1]' }],
+        }}
+        onCopy={vi.fn()}
+        onSendSecureMessage={vi.fn()}
+        setCopiedKey={vi.fn()}
+      />,
+    )
+
+    expect(html).toContain('Envoyer la version sécurisée')
+  })
+
   it('shows copied confirmation for the DLP alert copy button', () => {
     const html = renderToStaticMarkup(
       <ChatMessage

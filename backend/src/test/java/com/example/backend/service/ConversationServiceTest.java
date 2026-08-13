@@ -114,13 +114,13 @@ class ConversationServiceTest {
                 chatValidationService,
                 10
         );
-        lenient().when(demoUser.getExternalId()).thenReturn("demo-user");
+        lenient().when(demoUser.getExternalId()).thenReturn(testUserId.toString());
         lenient().when(currentUserService.resolve(any(Jwt.class))).thenReturn(demoUser);
         lenient().when(currentUserService.keycloakId(any(Jwt.class))).thenReturn(testUserId);
         lenient().when(chatValidationService.getBannedWords(any())).thenReturn(List.of());
         lenient().when(chatValidationService.getBannedWords(any(), any())).thenReturn(List.of());
-        lenient().when(dlpService.safeTextForLlm(any(), eq("demo-user"), any())).thenAnswer(invocation -> invocation.getArgument(0));
-        lenient().when(dlpService.safeUserMessage(any(), eq(testUserId), eq("demo-user"), any()))
+        lenient().when(dlpService.safeTextForLlm(any(), eq(testUserId.toString()), any())).thenAnswer(invocation -> invocation.getArgument(0));
+        lenient().when(dlpService.safeUserMessage(any(), eq(testUserId), eq(testUserId.toString()), any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
@@ -265,7 +265,7 @@ class ConversationServiceTest {
         AtomicReference<Message> savedUserMessage = new AtomicReference<>();
         when(conversationRepository.findOwnedById(10L, demoUser)).thenReturn(Optional.of(conversation));
         when(messageRepository.findMaxOrdre(conversation)).thenReturn(0);
-        when(dlpService.safeUserMessage("Mon secret est 1234", testUserId, "demo-user", List.of())).thenReturn("Mon secret est [MASKED]");
+        when(dlpService.safeUserMessage("Mon secret est 1234", testUserId, testUserId.toString(), List.of())).thenReturn("Mon secret est [MASKED]");
         when(messageRepository.save(any(Message.class))).thenAnswer(invocation -> {
             Message message = invocation.getArgument(0);
             if (message.getRole() == RoleMessage.USER) {
@@ -358,13 +358,13 @@ class ConversationServiceTest {
     })
     void streamMessageDoesNotCallLiteLlmWhenDlpBlocksSensitiveInput(String prompt, String type) {
         when(conversationRepository.findOwnedById(10L, demoUser)).thenReturn(Optional.of(conversation));
-        when(dlpService.safeUserMessage(prompt, testUserId, "demo-user", List.of()))
+        when(dlpService.safeUserMessage(prompt, testUserId, testUserId.toString(), List.of()))
                 .thenThrow(new DlpBlockedException("HIGH", Set.of(type)));
 
         service.streamMessage(10L, new SendMessageRequest(prompt), jwt);
 
         verify(liteLlmService, never()).streamChat(any(), any(), any(), any(), any());
-        verify(messageRepository, never()).save(any(Message.class));
+        verify(messageRepository).save(any(Message.class));
     }
 
     @ParameterizedTest
@@ -377,7 +377,7 @@ class ConversationServiceTest {
     })
     void streamMessageDoesNotCallLiteLlmWhenDlpIsUnavailable(String failureMode) {
         when(conversationRepository.findOwnedById(10L, demoUser)).thenReturn(Optional.of(conversation));
-        when(dlpService.safeUserMessage("Bonjour", testUserId, "demo-user", List.of()))
+        when(dlpService.safeUserMessage("Bonjour", testUserId, testUserId.toString(), List.of()))
                 .thenThrow(new DlpUnavailableException("DLP failure: " + failureMode));
 
         service.streamMessage(10L, new SendMessageRequest("Bonjour"), jwt);
@@ -389,7 +389,7 @@ class ConversationServiceTest {
     @Test
     void streamMessageDlpFailureDoesNotEmitPartialTokens() {
         when(conversationRepository.findOwnedById(10L, demoUser)).thenReturn(Optional.of(conversation));
-        when(dlpService.safeUserMessage("Ma CIN est AB123456", testUserId, "demo-user", List.of()))
+        when(dlpService.safeUserMessage("Ma CIN est AB123456", testUserId, testUserId.toString(), List.of()))
                 .thenThrow(new DlpBlockedException("HIGH", Set.of("moroccan_cin")));
 
         service.streamMessage(10L, new SendMessageRequest("Ma CIN est AB123456"), jwt);
@@ -402,13 +402,13 @@ class ConversationServiceTest {
     @Test
     void streamMessageDoesNotCallLiteLlmWhenDlpBlocks() {
         when(conversationRepository.findOwnedById(10L, demoUser)).thenReturn(Optional.of(conversation));
-        when(dlpService.safeUserMessage("secret", testUserId, "demo-user", List.of()))
+        when(dlpService.safeUserMessage("secret", testUserId, testUserId.toString(), List.of()))
                 .thenThrow(new DlpBlockedException("HIGH", Set.of("API_KEY")));
 
         service.streamMessage(10L, new SendMessageRequest("secret"), jwt);
 
         verify(liteLlmService, never()).streamChat(any(), any(), any(), any(), any());
-        verify(messageRepository, never()).save(any(Message.class));
+        verify(messageRepository).save(any(Message.class));
     }
 
     @Test
@@ -491,9 +491,9 @@ class ConversationServiceTest {
     ) {
         when(conversationRepository.findOwnedById(10L, demoUser)).thenReturn(Optional.of(conversation));
         when(messageRepository.findMaxOrdre(conversation)).thenReturn(previousMessages.size());
-        when(dlpService.safeUserMessage(prompt, testUserId, "demo-user", List.of())).thenReturn(safePrompt);
+        when(dlpService.safeUserMessage(prompt, testUserId, testUserId.toString(), List.of())).thenReturn(safePrompt);
         if (historicalOriginal != null) {
-            when(dlpService.safeTextForLlm(historicalOriginal, "demo-user", List.of())).thenReturn(historicalMasked);
+            when(dlpService.safeTextForLlm(historicalOriginal, testUserId.toString(), List.of())).thenReturn(historicalMasked);
         }
         AtomicReference<Message> savedUserMessage = new AtomicReference<>();
         when(messageRepository.save(any(Message.class))).thenAnswer(invocation -> {

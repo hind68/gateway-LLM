@@ -938,3 +938,24 @@
   border-color: #FCA5A5;
   background-color: rgba(255, 255, 255, 0.82);
 }
+
+.dlp-detail-heading {
+  gap: 12px;
+}
+
+.dlp-send-secure-button {
+  padding: 7px 10px;
+  border: 1px solid #b9d6c1;
+  border-radius: 8px;
+  background: #edf8f0;
+  color: #27623a;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.dlp-send-secure-button:hover,
+.dlp-send-secure-button:focus-visible {
+  border-color: #78b58a;
+  background: #e2f3e7;
+}

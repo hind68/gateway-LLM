@@ -298,6 +298,7 @@ export default function AppLayout({
           messagesRef={chat.messagesRef}
           onCopy={chat.onCopy}
           onInspectDocument={openInspector}
+          onSendSecureMessage={actions.sendSecureMessage}
           onMessagesScroll={chat.onMessagesScroll}
           setCopiedKey={chat.setCopiedKey}
           welcomeComposer={!chat.hasActiveMessages ? (

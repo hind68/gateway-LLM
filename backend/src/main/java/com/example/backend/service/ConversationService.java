@@ -212,12 +212,11 @@ public class ConversationService {
         }
 
         ModeleLlm generationModel = conversation.getModele();
-        Utilisateur user = conversation.getUtilisateur();
         List<String> roles = currentUserService.roles(jwt);
         chatValidationService.validateLlmAccess(userId, generationModel.getAliasInterne(), roles);
         List<String> bannedWords = chatValidationService.getBannedWords(userId, roles);
 
-        String safeContent = dlpService.safeUserMessage(content, userId, user.getExternalId(), bannedWords);
+        String safeContent = dlpService.safeUserMessage(content, userId, userId.toString(), bannedWords);
 
         int nextOrder = messageRepository.findMaxOrdre(conversation) + 1;
         Message userMessage = messageRepository.save(new Message(
@@ -261,7 +260,17 @@ public class ConversationService {
         try {
             preparation = prepareStream(conversationId, request, jwt);
         } catch (DlpAnalysisException exception) {
-            trySend(emitter, "error", streamError(exception));
+            if (exception instanceof DlpBlockedException blockedException) {
+                try {
+                    MessageResponse blockedMessage = persistBlockedText(conversationId, request.content(), blockedException, jwt);
+                    trySend(emitter, "message", blockedMessage);
+                    trySend(emitter, "error", streamError(blockedException, blockedMessage));
+                } catch (RuntimeException persistenceException) {
+                    trySend(emitter, "error", streamError(exception));
+                }
+            } else {
+                trySend(emitter, "error", streamError(exception));
+            }
             emitter.complete();
             return emitter;
         }
@@ -300,11 +309,10 @@ public class ConversationService {
         try {
             Conversation conversation = ownedConversation(conversationId, jwt);
             UUID userId = currentUserService.keycloakId(jwt);
-            Utilisateur authenticatedUser = currentUserService.resolve(jwt);
             List<String> roles = currentUserService.roles(jwt);
             chatValidationService.validateLlmAccess(userId, conversation.getModele().getAliasInterne(), roles);
             List<String> bannedWords = chatValidationService.getBannedWords(userId, roles);
-            DlpSafeMessage safeMessage = dlpService.safeMessageForLlm(content, files, userId, authenticatedUser.getExternalId(), bannedWords);
+            DlpSafeMessage safeMessage = dlpService.safeMessageForLlm(content, files, userId, userId.toString(), bannedWords);
             StreamPreparation preparation = prepareStreamWithSafeContent(conversationId, content, safeMessage, jwt);
             Message userMessage = messageRepository.findById(preparation.userMessage().id()).orElseThrow();
             List<AttachmentMetadata> attachments = attachmentService.store(userMessage, files, safeMessage.attachments());
@@ -344,6 +352,35 @@ public class ConversationService {
         userMessage.setAttachmentMetadataJson(serializeAttachmentMetadata(metadata));
         List<DlpPublicMatch> matches = enrichMatchesWithAttachmentIds(exception.getMatches(), metadata);
         return new BlockedUploadResult(withBlockedDlp(toMessageResponse(userMessage), matches, metadata), matches, blockedAttachments(exception.getAttachments(), metadata));
+    }
+
+    @Transactional
+    private MessageResponse persistBlockedText(Long conversationId, String content, DlpBlockedException exception, Jwt jwt) {
+        Conversation conversation = ownedConversation(conversationId, jwt);
+        if (conversation.getStatut() != StatutConversation.ACTIVE) {
+            throw new ResponseStatusException(BAD_REQUEST, "Conversation is archived");
+        }
+        String persistedContent = content == null ? "" : content.trim();
+        int nextOrder = messageRepository.findMaxOrdre(conversation) + 1;
+        Message userMessage = messageRepository.save(new Message(
+                conversation,
+                RoleMessage.USER,
+                nextOrder,
+                StatutMessage.DLP_BLOCKED,
+                persistedContent,
+                null
+        ));
+        userMessage.blockByDlp(
+                exception.getHighestSeverity(),
+                String.join(",", exception.getDetectedTypes()),
+                serializeDlpMatches(exception.getMatches()),
+                exception.getMaskedText()
+        );
+        if ("Nouvelle conversation".equals(conversation.getTitre())) {
+            conversation.rename(titleFrom(persistedContent));
+        }
+        conversation.touchLastMessageAt(Instant.now());
+        return withBlockedDlp(toMessageResponse(userMessage), exception.getMatches(), List.of());
     }
 
     @Transactional
@@ -617,6 +654,19 @@ public class ConversationService {
                 matches,
                 attachments,
                 blockedUpload == null ? null : blockedUpload.message()
+        );
+    }
+
+    private StreamErrorResponse streamError(DlpBlockedException blockedException, MessageResponse blockedMessage) {
+        return new StreamErrorResponse(
+                "DLP_BLOCKED",
+                "Votre message contient une donnée sensible et ne peut pas être envoyé.",
+                blockedException.getDetectedTypes(),
+                blockedException.getHighestSeverity(),
+                blockedException.getMaskedText(),
+                blockedException.getMatches(),
+                List.of(),
+                blockedMessage
         );
     }
 

@@ -45,7 +45,7 @@ export default function DocumentInspectorPanel({ attachment: inspectionTarget, c
       setShowTextSizeMenu(false)
     }, 0)
     return () => window.clearTimeout(timer)
-  }, [attachmentKey])
+  }, [attachmentKey, target])
 
   useEffect(() => {
     if (!attachment) return undefined
@@ -88,7 +88,7 @@ export default function DocumentInspectorPanel({ attachment: inspectionTarget, c
       controller.abort()
       if (previewUrl) URL.revokeObjectURL(previewUrl)
     }
-  }, [attachmentKey])
+  }, [attachmentKey, attachment, target.extractedText])
 
   useEffect(() => {
     if (!showTextSizeMenu) return undefined
@@ -159,7 +159,7 @@ export default function DocumentInspectorPanel({ attachment: inspectionTarget, c
       cancelled = true
       controller.abort()
     }
-  }, [attachmentKey])
+  }, [attachmentKey, attachment, target.extractedText, target.matches])
 
   useEffect(() => {
     if (!attachment) return undefined
@@ -188,7 +188,7 @@ export default function DocumentInspectorPanel({ attachment: inspectionTarget, c
       cancelled = true
       controller.abort()
     }
-  }, [attachmentKey])
+  }, [attachmentKey, attachment, target.maskedText])
 
   const filename = attachment?.filename || attachment?.name || 'Document'
   const extension = fileExtension(filename).toUpperCase() || 'FICHIER'

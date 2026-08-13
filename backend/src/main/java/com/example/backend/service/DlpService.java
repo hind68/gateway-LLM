@@ -46,7 +46,13 @@ public class DlpService {
         validateResponse(response);
         if (response.decision() == DlpDecision.BLOCK) {
             auditWriter.recordBlocked(userKeycloakId, text, reasonFrom(response), response);
-            throw new DlpBlockedException(response.highestSeverity(), detectedTypes(response));
+            throw new DlpBlockedException(
+                    response.highestSeverity(),
+                    detectedTypes(response),
+                    response.maskedText(),
+                    publicMatches(response),
+                    List.of()
+            );
         }
         if (response.maskedText() == null) throw new DlpInvalidResponseException("DLP response did not include masked_text");
         if (response.decision() == DlpDecision.MASK) auditWriter.recordRedacted(userKeycloakId, text, response.maskedText(), reasonFrom(response), response);
@@ -90,6 +96,12 @@ public class DlpService {
         for (DlpSourceResult result : response.results()) if (result == null || result.source() == null || result.status() == null || result.decision() == null || (result.decision() != DlpDecision.BLOCK && result.maskedText() == null)) throw new DlpInvalidResponseException("DLP source response is incomplete");
     }
     private Set<String> detectedTypes(DlpAnalysisResponse response) { return response.matches() == null ? Set.of() : response.matches().stream().map(DlpMatch::type).filter(type -> type != null && !type.isBlank()).collect(Collectors.toUnmodifiableSet()); }
+    private List<DlpPublicMatch> publicMatches(DlpAnalysisResponse response) {
+        if (response == null || response.matches() == null) return List.of();
+        return response.matches().stream()
+                .map(match -> publicMatch(null, "message", match))
+                .toList();
+    }
     private Set<String> detectedTypes(DlpMultiSourceAnalysisResponse response) { return response.results().stream().flatMap(result -> result.matches() == null ? java.util.stream.Stream.empty() : result.matches().stream()).map(DlpMatch::type).filter(type -> type != null && !type.isBlank()).collect(Collectors.toSet()); }
     private String reasonFrom(DlpAnalysisResponse response) { Set<String> types = detectedTypes(response); return types.isEmpty() ? "policy_match" : String.join(",", types); }
     private String sourceError(DlpMultiSourceAnalysisResponse response) {

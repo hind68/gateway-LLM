@@ -107,11 +107,17 @@ class DlpServiceTest {
         UUID userId = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
         DlpMatch match = new DlpMatch("1", "credit_card", 0, 16, "HIGH", "regex", 1.0, null);
         when(dlpClient.analyse("card 4111111111111111", "demo-user", List.of()))
-                .thenReturn(response(DlpDecision.BLOCK, null, List.of(match)));
+                .thenReturn(response(DlpDecision.BLOCK, "card [CREDIT_CARD]", List.of(match)));
 
         assertThatThrownBy(() -> dlpService.safeUserMessage(
                 "card 4111111111111111", userId, "demo-user", List.of()))
-                .isInstanceOf(DlpBlockedException.class);
+                .isInstanceOf(DlpBlockedException.class)
+                .satisfies(exception -> {
+                    DlpBlockedException blocked = (DlpBlockedException) exception;
+                    assertThat(blocked.getMaskedText()).isEqualTo("card [CREDIT_CARD]");
+                    assertThat(blocked.getMatches()).hasSize(1);
+                    assertThat(blocked.getMatches().get(0).source()).isEqualTo("message");
+                });
 
         verify(auditWriter).recordBlocked(
                 eq(userId), eq("card 4111111111111111"), eq("credit_card"), org.mockito.ArgumentMatchers.any());
