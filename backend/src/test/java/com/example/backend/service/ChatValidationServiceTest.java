@@ -47,6 +47,14 @@ class ChatValidationServiceTest {
     }
 
     @Test
+    void personalRestrictionIsNotBypassedForAdminVisibility() {
+        when(userLlmRestrictionRepository.existsByUserKeycloakIdAndLlmModelAlias(USER_ID, "secure-groq"))
+                .thenReturn(true);
+
+        assertThat(service.isLlmAllowed(USER_ID, "secure-groq", List.of("ADMIN"))).isFalse();
+    }
+
+    @Test
     void bannedWordsMergeGlobalUserAndRolePolicies() {
         RoleBannedWord roleWord = new RoleBannedWord();
         roleWord.setWord(" secret ");

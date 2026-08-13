@@ -54,6 +54,12 @@ public class ChatValidationService {
     }
 
     public boolean isLlmAllowed(UUID userId, String llmModelAlias, Collection<String> roles) {
+        // An explicit per-user restriction must also hide the model for an
+        // administrator's own chat session. The admin role may bypass role
+        // restrictions, but it must not bypass a personal restriction.
+        if (llmRestrictionRepo.existsByUserKeycloakIdAndLlmModelAlias(userId, llmModelAlias)) {
+            return false;
+        }
         if (roles != null && roles.stream().map(String::toUpperCase).anyMatch("ADMIN"::equals)) {
             return true;
         }
