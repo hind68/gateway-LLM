@@ -74,16 +74,20 @@ export default function useChatController({
       composerBeforeRectRef.current = composerRef.current.getBoundingClientRect()
     }
     chat.setDraft('')
+    if (attachments.length > 0) {
+      chat.clearAttachments()
+    }
     chat.restoreComposerFocusSoon()
     chat.setIsLastBlockVisible(true)
     shouldAutoScrollRef.current = true
 
     try {
       const conversation = await actions.ensureConversation(prompt)
-      void chat.streamMessage(conversation, prompt, attachments, {
-        onMessageAccepted: chat.clearAttachments,
-      })
+      void chat.streamMessage(conversation, prompt, attachments)
     } catch (error) {
+      if (attachments.length > 0) {
+        chat.setAttachments(attachments)
+      }
       feedback.showError(friendlyGenerationError(error))
       chat.restoreComposerFocusSoon()
     }

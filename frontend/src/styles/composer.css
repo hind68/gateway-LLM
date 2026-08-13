@@ -216,7 +216,7 @@
   max-height: 170px;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 6px 50px 8px 6px;
+  padding: 4px 50px 6px 4px;
   scrollbar-width: none;
 }
 
@@ -237,17 +237,17 @@
 
 .attachment-chip {
   position: relative;
-  width: var(--attachment-card-width);
-  min-width: var(--attachment-card-width);
-  max-width: var(--attachment-card-width);
-  flex: 0 0 var(--attachment-card-width);
+  width: 220px;
+  min-width: 220px;
+  max-width: 220px;
+  flex: 0 0 220px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   background-color: #f8fafc;
   border: 1px solid #f1f5f9;
   border-radius: 8px;
-  padding: 6px 10px;
+  padding: 8px 12px;
   margin-bottom: 0;
   overflow: visible;
   box-shadow: none !important;

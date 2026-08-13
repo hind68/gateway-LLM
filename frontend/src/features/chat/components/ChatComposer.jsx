@@ -23,8 +23,8 @@ export default function ChatComposer({
 }) {
   const [visibleAttachments, setVisibleAttachments] = useState(attachments)
   const [hideComplete, setHideComplete] = useState(false)
-  const displayAttachments = attachments.length > 0 ? attachments : visibleAttachments
-  const isHidingAttachments = attachments.length === 0 && displayAttachments.length > 0 && !hideComplete
+  const displayAttachments = attachments.length > 0 ? attachments : (isGenerating ? [] : visibleAttachments)
+  const isHidingAttachments = !isGenerating && attachments.length === 0 && displayAttachments.length > 0 && !hideComplete
 
   useEffect(() => {
     if (attachments.length > 0) {

@@ -310,20 +310,21 @@
 
 .collapsed-panel {
   position: fixed;
-  z-index: 180;
-  top: 74px;
-  left: calc(var(--sidebar-closed-width) + 10px);
-  width: 312px;
-  max-height: min(620px, calc(100vh - 92px));
-  border: 1px solid var(--border-subtle);
-  border-radius: 15px;
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.12);
+  z-index: 200;
+  top: 72px;
+  left: calc(var(--sidebar-closed-width) + 12px);
+  width: 320px;
+  max-height: min(520px, calc(100vh - 100px));
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow:
+    0 12px 30px rgba(15, 23, 42, 0.10),
+    0 2px 8px rgba(15, 23, 42, 0.05);
   display: flex;
   flex-direction: column;
-  gap: 8px;
   overflow: hidden;
-  padding: 10px;
+  padding: 0;
 }
 
 .collapsed-panel-header {
@@ -333,7 +334,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 0 2px 2px 4px;
+  padding: 14px 14px 10px;
 }
 
 .collapsed-panel-header strong {
@@ -370,21 +371,31 @@
 
 .collapsed-panel .filters {
   flex-shrink: 0;
-  margin: 0 0 2px;
+  margin: 0;
+  padding: 0 14px 8px;
+}
+
+.collapsed-panel .archive-tabs {
+  margin-bottom: 0;
 }
 
 .collapsed-panel .history {
-  flex: 1;
+  flex: 0 1 auto;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  display: grid;
-  align-content: start;
-  gap: 5px;
-  padding-right: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 10px 12px;
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
   transition: scrollbar-color 160ms ease;
+}
+
+.collapsed-panel .history-empty {
+  margin: 0;
+  padding: 8px 4px;
 }
 
 .collapsed-panel .history:hover {
@@ -411,9 +422,11 @@
 }
 
 .collapsed-panel .history-row {
+  position: relative;
+  flex: 0 0 auto;
   min-width: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 32px;
+  width: 100%;
+  display: flex;
   align-items: center;
   border-radius: 8px;
   transition: background-color 140ms ease;
@@ -428,14 +441,16 @@
 }
 
 .collapsed-panel .history-item {
+  flex: 1 1 auto;
   min-width: 0;
+  width: 100%;
   border: 0;
   background: transparent;
   color: #242424;
   cursor: pointer;
-  display: grid;
-  gap: 6px;
-  padding: 9px 7px 9px 10px;
+  display: flex;
+  align-items: center;
+  padding: 6px 34px 6px 10px;
   text-align: left;
 }
 
@@ -471,8 +486,22 @@
 }
 
 .collapsed-panel .conversation-menu {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  z-index: 2;
+  transform: translateY(-50%);
   opacity: 0;
   pointer-events: none;
+  transition: opacity 160ms ease;
+}
+
+.collapsed-panel .conversation-menu .icon-button {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .collapsed-panel .history-row:hover .conversation-menu,
