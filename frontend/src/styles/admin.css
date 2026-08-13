@@ -120,3 +120,227 @@
 .admin-model-row .admin-model-logo img { display: block; width: 28px; height: 28px; max-width: 100%; max-height: 100%; object-fit: contain; }
 .admin-model-row .model-row-copy, .admin-model-row .model-row-title > div { min-width: 0; }
 .role-sync-warning { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; color: #a87830; font-size: 11px; }
+
+/* Chatbot palette across the complete administration experience. */
+.admin-shell {
+  --admin-navy: var(--ui-blue-900);
+  --admin-navy-deep: var(--ui-text-strong);
+  --admin-blue-soft: var(--ui-blue-100);
+  --admin-peach: var(--ui-orange-glow);
+  --admin-surface: var(--ui-panel);
+  --admin-border: var(--ui-border-subtle);
+  --admin-text: var(--ui-text-strong);
+  --admin-muted: var(--ui-text-muted);
+  color: var(--ui-text-strong);
+}
+
+.admin-sidebar {
+  border-color: var(--sidebar-divider);
+  background: linear-gradient(180deg, var(--sidebar-surface-strong), var(--sidebar-surface));
+}
+
+.admin-sidebar-brand,
+.admin-page-header h1,
+.admin-section-heading h2,
+.admin-security-banner h2,
+.admin-stat-copy strong,
+.metric-box strong,
+.user-profile h2,
+.admin-modal-header h2 {
+  color: var(--ui-text-strong);
+}
+
+.admin-sidebar-label,
+.admin-eyebrow,
+.admin-card-kicker,
+.admin-page-header p,
+.admin-account-copy small,
+.admin-stat-copy > span,
+.admin-stat-copy small,
+.admin-security-banner p,
+.metric-box span,
+.provider-copy small,
+.model-row-title small,
+.model-row-copy p,
+.model-identifiers,
+.model-test-result,
+.available-note,
+.user-row-copy small,
+.user-profile p,
+.user-summary span,
+.helper-text,
+.muted,
+.technical-details summary,
+.technical-details > div,
+.role-context small,
+.admin-pagination span,
+.admin-state,
+.admin-state strong,
+.admin-state p,
+.admin-modal-header p,
+.admin-field > span,
+.checkbox-line,
+.admin-confirm-copy {
+  color: var(--ui-text-muted);
+}
+
+.admin-card,
+.admin-stat-card,
+.admin-security-banner,
+.admin-model-row,
+.admin-modal {
+  border-color: var(--ui-border-subtle);
+  background: var(--ui-panel);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .045);
+  backdrop-filter: blur(14px);
+}
+
+.admin-sidebar-nav button,
+.admin-back-chat {
+  color: var(--ui-text-muted);
+}
+
+.admin-sidebar-nav button:hover,
+.admin-back-chat:hover,
+.admin-user-row:hover,
+.admin-icon-button:hover,
+.admin-text-button:hover {
+  background: var(--sidebar-hover);
+  color: var(--ui-text-strong);
+}
+
+.admin-sidebar-nav button.active,
+.admin-user-row.selected,
+.role-check.selected,
+.role-selector button.active,
+.audit-view-switch button.active {
+  border-color: var(--ui-blue-150);
+  background: var(--ui-blue-100);
+  color: var(--ui-blue-900);
+  box-shadow: none;
+}
+
+.admin-account-avatar,
+.user-mark {
+  background: var(--ui-orange-600);
+  color: var(--ui-canvas);
+}
+
+.admin-brand-tag,
+.admin-stat-icon,
+.provider-mark,
+.model-mark,
+.count-pill,
+.admin-copy-button,
+.admin-state-icon,
+.status-badge.info,
+.role-context,
+.user-summary > div {
+  background: var(--ui-blue-100);
+  color: var(--ui-blue-900);
+}
+
+.admin-stat-card.peach .admin-stat-icon,
+.model-mark-peach,
+.restriction-chip {
+  background: var(--ui-orange-glow);
+  color: var(--ui-orange-700);
+}
+
+.admin-button.primary {
+  background: #242424;
+  color: var(--ui-canvas);
+}
+
+.admin-button.primary:hover:not(:disabled) {
+  background: var(--ui-text-strong);
+}
+
+.admin-button.secondary,
+.admin-pagination button,
+.admin-back-chat,
+.role-check,
+.role-selector,
+.audit-view-switch {
+  border-color: var(--ui-control-border);
+  background: var(--ui-canvas);
+  color: var(--ui-text-strong);
+}
+
+.admin-search-field,
+.admin-input,
+.inline-add-form input,
+.inline-add-form select,
+.admin-field input,
+.admin-field select,
+.admin-field textarea {
+  border-color: var(--ui-control-border);
+  background: var(--ui-canvas);
+  color: var(--ui-text-strong);
+}
+
+.admin-search-field:focus-within,
+.admin-field input:focus,
+.admin-field select:focus,
+.admin-field textarea:focus {
+  border-color: var(--ui-control-border) !important;
+  box-shadow: 0 0 0 2px var(--ui-blue-150) !important;
+}
+
+.admin-table th,
+.admin-table td,
+.admin-compact-list,
+.admin-provider-list,
+.admin-compact-row,
+.admin-provider-row,
+.user-profile,
+.detail-section,
+.technical-details {
+  border-color: var(--ui-border-subtle);
+}
+
+.admin-table th,
+.admin-table td,
+.audit-table td time,
+.regex-cell code,
+.technical-details code {
+  color: var(--ui-text-muted);
+}
+
+.admin-bar-track {
+  background: var(--ui-blue-100);
+}
+
+.admin-bar-track i {
+  background: linear-gradient(180deg, var(--ui-blue-150), var(--ui-blue-900));
+}
+
+.admin-category-row > i {
+  background: linear-gradient(90deg, var(--ui-blue-900), var(--ui-orange-600));
+}
+
+.audit-detail-row td > div,
+.safe-content {
+  background: var(--ui-canvas-cool);
+  color: var(--ui-text-muted);
+}
+
+.admin-modal-backdrop {
+  background: rgba(40, 50, 68, .22);
+}
+
+.admin-toast:not(.error),
+.admin-live-status,
+.status-badge:not(.danger):not(.warning):not(.info) {
+  border-color: var(--ui-blue-150);
+  background: var(--ui-blue-100);
+  color: var(--ui-blue-900);
+}
+
+.admin-shell button:focus-visible,
+.admin-shell input:focus-visible,
+.admin-shell select:focus-visible,
+.admin-shell textarea:focus-visible,
+.admin-shell summary:focus-visible {
+  outline-color: var(--ui-blue-150) !important;
+}
