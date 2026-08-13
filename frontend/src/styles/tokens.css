@@ -1,5 +1,14 @@
 ﻿/* Global tokens */
 :root {
+  --ui-canvas: #ffffff;
+  --ui-canvas-cool: #fbfdff;
+  --ui-canvas-warm: #fffaf6;
+  --ui-blue-glow: rgba(155, 214, 255, 0.28);
+  --ui-orange-glow: rgba(255, 202, 163, 0.28);
+  --ui-text-strong: #171717;
+  --ui-text-muted: #4b5563;
+  --ui-control-border: #d1d5db;
+  --ui-panel: rgba(255, 255, 255, 0.78);
   --ui-blue-900: #243b6b;
   --ui-blue-100: #edf3ff;
   --ui-blue-150: #e5eefc;

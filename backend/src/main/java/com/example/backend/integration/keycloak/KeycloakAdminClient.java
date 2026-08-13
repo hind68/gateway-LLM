@@ -7,6 +7,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Component
@@ -94,7 +95,9 @@ public class KeycloakAdminClient {
             Map<String, Object> token = client.post()
                     .uri("/realms/{realm}/protocol/openid-connect/token", adminRealm)
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                    .bodyValue("grant_type=client_credentials&client_id=" + clientId + "&client_secret=" + clientSecret)
+                    .body(BodyInserters.fromFormData("grant_type", "client_credentials")
+                            .with("client_id", clientId)
+                            .with("client_secret", clientSecret))
                     .retrieve().bodyToMono(Map.class).block(timeout);
             String accessToken = String.valueOf(token.get("access_token"));
             return accessToken;
