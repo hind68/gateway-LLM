@@ -233,7 +233,7 @@ export default function Sidebar({
           </nav>
         )}
 
-        <div className="sidebar-user" data-menu-root>
+        <div className={`sidebar-user ${isSidebarOpen && isAccountMenuOpen ? 'account-menu-open' : ''}`} data-menu-root>
           <button
             type="button"
             title="Compte"
@@ -292,7 +292,7 @@ function AccountPopover({ className = 'account-popover-open' }) {
         role="menuitem"
         onClick={() => keycloak?.logout({ redirectUri: window.location.origin })}
       >
-        Se deconnecter
+        Se déconnecter
       </button>
     </div>
   )

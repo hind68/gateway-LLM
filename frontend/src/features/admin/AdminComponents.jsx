@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 
 import { ADMIN_NAV_ITEMS } from './AdminUtils'
 
@@ -38,15 +38,33 @@ export function AdminShell({ activeSection, onSectionChange, onBackToChat, keycl
 export function AdminSidebar({ activeSection, onSectionChange, onBackToChat, keycloak }) {
   const account = keycloak?.tokenParsed?.name || keycloak?.tokenParsed?.preferred_username || 'Utilisateur'
   const initials = account.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase()
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
+  const accountMenuRef = useRef(null)
+
+  useEffect(() => {
+    if (!isAccountMenuOpen) return undefined
+    const closeOnOutsideClick = (event) => {
+      if (!accountMenuRef.current?.contains(event.target)) setIsAccountMenuOpen(false)
+    }
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setIsAccountMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', closeOnOutsideClick)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsideClick)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [isAccountMenuOpen])
 
   return (
     <aside className="admin-sidebar" aria-label="Navigation administration">
       <div className="admin-sidebar-brand">
-        <img src="/assets/synapse-logo.png" alt="" />
+        <span className="admin-sidebar-logo" aria-hidden="true">
+          <img src="/assets/synapse-logo.png" alt="" />
+        </span>
         <span>Synapse</span>
-        <span className="admin-brand-tag">ADMIN</span>
       </div>
-      <div className="admin-sidebar-label">Espace de travail</div>
       <nav className="admin-sidebar-nav" aria-label="Sections d'administration">
         {ADMIN_NAV_ITEMS.map((item) => (
           <button key={item.id} type="button" className={activeSection === item.id ? 'active' : ''} aria-current={activeSection === item.id ? 'page' : undefined} onClick={() => onSectionChange(item.id)}>
@@ -57,10 +75,24 @@ export function AdminSidebar({ activeSection, onSectionChange, onBackToChat, key
       </nav>
       <div className="admin-sidebar-bottom">
         <button type="button" className="admin-back-chat" onClick={onBackToChat}><Icon name="arrow" size={16} /><span>Retour au chat</span></button>
-        <div className="admin-account">
-          <span className="admin-account-avatar" aria-hidden="true">{initials || '?'}</span>
-          <span className="admin-account-copy"><strong>{account}</strong><small>Administrateur</small></span>
-          <button type="button" className="admin-icon-button" title="Se déconnecter" aria-label="Se déconnecter" onClick={() => keycloak?.logout?.({ redirectUri: window.location.origin })}><Icon name="logout" size={16} /></button>
+        <div ref={accountMenuRef} className={`admin-account ${isAccountMenuOpen ? 'account-menu-open' : ''}`}>
+          {isAccountMenuOpen && (
+            <div className="account-popover admin-account-popover" role="menu">
+              <button type="button" role="menuitem" onClick={() => keycloak?.logout?.({ redirectUri: window.location.origin })}>Se déconnecter</button>
+            </div>
+          )}
+          <button
+            type="button"
+            className="admin-account-trigger"
+            title="Compte"
+            aria-label="Compte"
+            aria-haspopup="menu"
+            aria-expanded={isAccountMenuOpen}
+            onClick={() => setIsAccountMenuOpen((current) => !current)}
+          >
+            <span className="admin-account-avatar" aria-hidden="true">{initials || '?'}</span>
+            <span className="admin-account-copy"><strong>{account}</strong></span>
+          </button>
         </div>
       </div>
     </aside>

@@ -332,6 +332,10 @@
   padding: 8px 0;
 }
 
+.sidebar-user.account-menu-open {
+  padding-top: 66px;
+}
+
 .sidebar-user > button {
   width: var(--sidebar-item-width);
   min-width: 0;
@@ -402,8 +406,9 @@
 
 .sidebar-user .account-popover {
   position: absolute;
+  top: 8px;
   left: 8px;
-  bottom: 66px;
+  bottom: auto;
   z-index: 220;
   width: 210px;
 }
@@ -460,9 +465,25 @@
 }
 
 .sidebar-closed .sidebar-navigation {
-  gap: 2px;
-  padding: 3px 0 8px;
+  gap: 3px;
+  padding: 3px 0 0;
   justify-items: start;
+}
+
+.sidebar-closed .sidebar-primary-nav,
+.sidebar-closed .sidebar-admin-navigation {
+  border-top: 0;
+  border-bottom: 0;
+}
+
+.sidebar-closed .sidebar-primary-nav {
+  gap: 3px;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
+.sidebar-closed .sidebar-admin-navigation {
+  padding: 3px 0 0;
 }
 
 .sidebar-closed .sidebar-navigation button,

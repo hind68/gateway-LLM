@@ -42,7 +42,6 @@ export default function useChatUi({
   const [draft, setDraft] = useState('')
   const [copiedKey, setCopiedKey] = useState('')
   const [attachments, setAttachments] = useState([])
-  const [attachmentError, setAttachmentError] = useState('')
   const [isComposerMaxed, setIsComposerMaxed] = useState(false)
   const [isComposerTransitioning, setIsComposerTransitioning] = useState(false)
   const [composerHeight, setComposerHeight] = useState(null)
@@ -256,7 +255,6 @@ export default function useChatUi({
     const availableSlots = availableAttachmentSlots(attachments.length)
     const filesToProcess = incoming.slice(0, availableSlots)
     if (filesToProcess.length < incoming.length) {
-      setAttachmentError(MAX_ATTACHMENTS_MESSAGE)
       showError(MAX_ATTACHMENTS_MESSAGE)
     }
     const accepted = []
@@ -271,18 +269,15 @@ export default function useChatUi({
     setAttachments((current) => {
       const existingKeys = new Set(current.map(pendingAttachmentKey))
       const uniqueAccepted = accepted.filter((file) => !existingKeys.has(pendingAttachmentKey(file)))
-      if (uniqueAccepted.length > 0) setAttachmentError('')
       return [...current, ...uniqueAccepted]
     })
   }, [attachments.length, showError])
 
   const removeAttachment = useCallback((index) => {
-    setAttachmentError('')
     setAttachments((current) => current.filter((_, itemIndex) => itemIndex !== index))
   }, [])
 
   const clearAttachments = useCallback(() => {
-    setAttachmentError('')
     setAttachments([])
   }, [])
 
