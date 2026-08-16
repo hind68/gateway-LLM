@@ -2,7 +2,9 @@ package com.example.backend.integration.keycloak;
 
 import com.example.backend.exceptions.DlpUnavailableException;
 import java.time.Duration;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -17,6 +19,7 @@ public class KeycloakAdminClient {
     private final String realm;
     private final String clientId;
     private final String clientSecret;
+    private final List<String> managedRoleNames;
     private final Duration timeout = Duration.ofSeconds(10);
 
     public KeycloakAdminClient(
@@ -24,13 +27,19 @@ public class KeycloakAdminClient {
             @Value("${keycloak.admin.realm:synapse}") String realm,
             @Value("${keycloak.admin.token-realm:synapse}") String adminRealm,
             @Value("${keycloak.admin.client-id:gateway-admin}") String clientId,
-            @Value("${keycloak.admin.client-secret:}") String clientSecret
+            @Value("${keycloak.admin.client-secret:}") String clientSecret,
+            @Value("${keycloak.admin.managed-roles:ADMIN,INTERN,EXTERN}") String managedRoles
     ) {
         this.client = WebClient.builder().baseUrl(baseUrl).build();
         this.realm = realm;
         this.adminRealm = adminRealm;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
+        this.managedRoleNames = List.of(managedRoles.split(",")).stream()
+                .map(this::normalizeRoleName)
+                .filter(name -> !name.isBlank())
+                .distinct()
+                .toList();
     }
 
     public List<Map<String, Object>> users(String search) {
@@ -52,24 +61,32 @@ public class KeycloakAdminClient {
     }
 
     public List<Map<String, Object>> roles() {
-        return client.get().uri("/admin/realms/{realm}/roles", realm).headers(headers -> headers.setBearerAuth(adminToken()))
+        List<Map<String, Object>> roles = client.get().uri("/admin/realms/{realm}/roles", realm)
+                .headers(headers -> headers.setBearerAuth(adminToken()))
                 .retrieve().bodyToFlux(Map.class).map(value -> (Map<String, Object>) value).collectList().block(timeout);
+        return managedRolesOnly(roles);
     }
 
     public List<Map<String, Object>> userRealmRoles(String userId) {
-        return client.get().uri("/admin/realms/{realm}/users/{id}/role-mappings/realm", realm, userId)
+        List<Map<String, Object>> roles = client.get().uri("/admin/realms/{realm}/users/{id}/role-mappings/realm", realm, userId)
                 .headers(headers -> headers.setBearerAuth(adminToken()))
                 .retrieve().bodyToFlux(Map.class).map(value -> (Map<String, Object>) value).collectList().block(timeout);
+        return managedRolesOnly(roles);
     }
 
     public void setRealmRoles(String userId, List<String> roleNames) {
+        List<String> selectedRoleNames = roleNames.stream()
+                .map(this::normalizeRoleName)
+                .filter(managedRoleNames::contains)
+                .distinct()
+                .toList();
         List<Map<String, Object>> roleRepresentations = roles().stream()
-                .filter(role -> roleNames.contains(String.valueOf(role.get("name"))))
+                .filter(role -> selectedRoleNames.contains(roleName(role)))
                 .map(role -> Map.of("id", role.get("id"), "name", role.get("name")))
                 .toList();
         List<Map<String, Object>> current = userRealmRoles(userId);
         List<Map<String, Object>> toRemove = current.stream()
-                .filter(role -> !roleNames.contains(String.valueOf(role.get("name"))))
+                .filter(role -> !selectedRoleNames.contains(roleName(role)))
                 .map(role -> Map.of("id", role.get("id"), "name", role.get("name")))
                 .toList();
         if (!toRemove.isEmpty()) {
@@ -79,15 +96,33 @@ public class KeycloakAdminClient {
                     .contentType(MediaType.APPLICATION_JSON).bodyValue(toRemove)
                     .retrieve().toBodilessEntity().block(timeout);
         }
-        List<String> currentNames = current.stream().map(role -> String.valueOf(role.get("name"))).toList();
+        List<String> currentNames = current.stream().map(this::roleName).toList();
         List<Map<String, Object>> toAdd = roleRepresentations.stream()
-                .filter(role -> !currentNames.contains(String.valueOf(role.get("name"))))
+                .filter(role -> !currentNames.contains(roleName(role)))
                 .toList();
         if (!toAdd.isEmpty()) {
             client.post().uri("/admin/realms/{realm}/users/{id}/role-mappings/realm", realm, userId).headers(headers -> headers.setBearerAuth(adminToken()))
                     .contentType(MediaType.APPLICATION_JSON).bodyValue(toAdd)
                     .retrieve().toBodilessEntity().block(timeout);
         }
+    }
+
+    private List<Map<String, Object>> managedRolesOnly(List<Map<String, Object>> roles) {
+        if (roles == null) {
+            return List.of();
+        }
+        return roles.stream()
+                .filter(role -> managedRoleNames.contains(roleName(role)))
+                .sorted(Comparator.comparingInt(role -> managedRoleNames.indexOf(roleName(role))))
+                .toList();
+    }
+
+    private String roleName(Map<String, Object> role) {
+        return normalizeRoleName(String.valueOf(role.getOrDefault("name", "")));
+    }
+
+    private String normalizeRoleName(String roleName) {
+        return roleName == null ? "" : roleName.trim().toUpperCase(Locale.ROOT);
     }
 
     private String adminToken() {

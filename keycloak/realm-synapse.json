@@ -4,7 +4,7 @@
   "loginTheme": "synapse",
   "internationalizationEnabled": true,
   "defaultLocale": "fr",
-  "supportedLocales": ["fr", "en"],
+  "supportedLocales": ["fr"],
   "registrationAllowed": false,
   "roles": {
     "realm": [

@@ -6,11 +6,13 @@ REALM="${KEYCLOAK_ADMIN_REALM:-synapse}"
 KCADM="/opt/keycloak/bin/kcadm.sh"
 
 echo "Waiting for Keycloak realm ${REALM}..."
-"$KCADM" config credentials \
+until "$KCADM" config credentials \
   --server "$SERVER" \
   --realm master \
   --user "$KEYCLOAK_ADMIN_USERNAME" \
-  --password "$KEYCLOAK_ADMIN_PASSWORD"
+  --password "$KEYCLOAK_ADMIN_PASSWORD" >/dev/null 2>&1; do
+  sleep 2
+done
 
 until "$KCADM" get "realms/${REALM}" >/dev/null 2>&1; do
   sleep 2
@@ -20,7 +22,7 @@ done
   -s loginTheme=synapse \
   -s internationalizationEnabled=true \
   -s defaultLocale=fr \
-  -s 'supportedLocales=["fr","en"]'
+  -s 'supportedLocales=["fr"]'
 
 ensure_role() {
   role_name="$1"
