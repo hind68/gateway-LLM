@@ -184,7 +184,7 @@
 .sidebar-icon,
 .user-avatar-wrapper {
   position: relative;
-  width: 48px;
+  width: px;
   height: 36px;
   display: grid;
   place-items: center;
