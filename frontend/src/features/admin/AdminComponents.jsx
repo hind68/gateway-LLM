@@ -29,6 +29,7 @@ export function Icon({ name, size = 18, strokeWidth = 1.8 }) {
 
 export function AdminShell({ activeSection, onSectionChange, onBackToChat, keycloak, children }) {
   const [isExiting, setIsExiting] = useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const exitTimerRef = useRef(null)
 
   useEffect(() => () => window.clearTimeout(exitTimerRef.current), [])
@@ -44,14 +45,14 @@ export function AdminShell({ activeSection, onSectionChange, onBackToChat, keycl
   }
 
   return (
-    <div className={`admin-shell ${isExiting ? 'is-exiting' : ''}`}>
-      <AdminSidebar activeSection={activeSection} onSectionChange={onSectionChange} onBackToChat={closeAdmin} keycloak={keycloak} />
+    <div className={`admin-shell ${isSidebarOpen ? 'admin-sidebar-open' : 'admin-sidebar-closed'} ${isExiting ? 'is-exiting' : ''}`}>
+      <AdminSidebar activeSection={activeSection} onSectionChange={onSectionChange} onBackToChat={closeAdmin} keycloak={keycloak} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
       <main className="admin-main-panel">{children}</main>
     </div>
   )
 }
 
-export function AdminSidebar({ activeSection, onSectionChange, onBackToChat, keycloak }) {
+export function AdminSidebar({ activeSection, onSectionChange, onBackToChat, keycloak, isSidebarOpen, setIsSidebarOpen }) {
   const account = keycloak?.tokenParsed?.name || keycloak?.tokenParsed?.preferred_username || 'Utilisateur'
   const initials = account.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase()
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
@@ -75,11 +76,17 @@ export function AdminSidebar({ activeSection, onSectionChange, onBackToChat, key
 
   return (
     <aside className="admin-sidebar" aria-label="Navigation administration">
-      <div className="admin-sidebar-brand">
-        <span className="admin-sidebar-logo" aria-hidden="true">
-          <img src="/assets/synapse-logo.png" alt="" />
-        </span>
-        <span>Synapse</span>
+      <div className="admin-sidebar-header">
+        <button className="admin-sidebar-brand" type="button" aria-label={isSidebarOpen ? 'Synapse' : 'Ouvrir la sidebar'} onClick={() => { if (!isSidebarOpen) setIsSidebarOpen(true) }}>
+          <span className="admin-sidebar-logo" aria-hidden="true">
+            <img className="admin-sidebar-logo-default" src="/assets/synapse-logo.png" alt="" />
+            <img className="admin-sidebar-logo-hover" src="/assets/synapse-hover.png" alt="" />
+          </span>
+          <span>Synapse</span>
+        </button>
+        <button className="admin-sidebar-toggle" type="button" title={isSidebarOpen ? 'Réduire la sidebar' : 'Ouvrir la sidebar'} aria-label={isSidebarOpen ? 'Réduire la sidebar' : 'Ouvrir la sidebar'} aria-expanded={isSidebarOpen} onClick={() => setIsSidebarOpen((current) => !current)}>
+          <img src="/assets/sidebar.png" alt="" />
+        </button>
       </div>
       <nav className="admin-sidebar-nav" aria-label="Sections d'administration">
         {ADMIN_NAV_ITEMS.map((item) => (
