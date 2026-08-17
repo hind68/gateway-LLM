@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -48,7 +50,11 @@ public class KeycloakAdminController {
 
     @PutMapping("/users/{id}/roles")
     public void setRoles(@PathVariable String id, @RequestBody Map<String, List<String>> payload, JwtAuthenticationToken auth) {
-        keycloak.setRealmRoles(id, payload.getOrDefault("roles", List.of()));
+        List<String> roles = payload.getOrDefault("roles", List.of());
+        if (roles.size() != 1 || roles.get(0) == null || roles.get(0).isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Exactly one managed role is required");
+        }
+        keycloak.setRealmRoles(id, roles);
         audit("UPDATE_ROLES", "KEYCLOAK_USER", id, auth);
     }
 

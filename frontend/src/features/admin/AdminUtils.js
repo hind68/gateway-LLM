@@ -7,6 +7,13 @@ export const ADMIN_NAV_ITEMS = [
   { id: 'audit', label: "Journal d'audit", icon: 'activity' },
 ]
 
+export function formatKicker(value) {
+  const text = String(value || '').trim().toLocaleLowerCase('fr-FR')
+  if (!text) return ''
+  const sentence = text.charAt(0).toLocaleUpperCase('fr-FR') + text.slice(1)
+  return sentence.replace(/\bdlp\b/gi, 'DLP').replace(/\bapi\b/gi, 'API')
+}
+
 export function formatAction(value) {
   const labels = { ADD: 'Ajout', CREATE: 'Création', DELETE: 'Suppression', UPDATE: 'Modification', ENABLE: 'Activation', DISABLE: 'Désactivation', BLOCKED: 'Bloqué', REDACTED: 'Masqué', MASKED: 'Masqué' }
   return labels[String(value || '').toUpperCase()] || String(value || 'Événement').replaceAll('_', ' ').toLowerCase()

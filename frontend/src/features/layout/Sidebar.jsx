@@ -239,8 +239,12 @@ export default function Sidebar({
             title="Compte"
             aria-label="Compte"
             onClick={() => {
+              if (isAccountMenuOpen) {
+                setIsAccountMenuOpen(false)
+                return
+              }
               closeTransientMenus()
-              setIsAccountMenuOpen((current) => !current)
+              setIsAccountMenuOpen(true)
             }}
           >
             <span className="user-avatar-wrapper">

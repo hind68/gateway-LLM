@@ -184,10 +184,16 @@
 .sidebar-icon,
 .user-avatar-wrapper {
   position: relative;
-  width: px;
+  width: 48px;
   height: 36px;
   display: grid;
   place-items: center;
+}
+
+/* Keep icons on the same 28px axis while the sidebar width changes. */
+.sidebar-open .sidebar-icon,
+.sidebar-open .user-avatar-wrapper {
+  transform: translateX(-4px);
 }
 
 .sidebar-icon::before,
@@ -235,6 +241,13 @@
   width: 19px;
   height: 19px;
   object-fit: contain;
+}
+
+.sidebar-admin-navigation img {
+  width: 19px;
+  height: 19px;
+  transform: none;
+  transition: none;
 }
 
 .sidebar-navigation button:nth-child(2) img,
@@ -333,7 +346,7 @@
 }
 
 .sidebar-user.account-menu-open {
-  padding-top: 66px;
+  padding-top: 8px;
 }
 
 .sidebar-user > button {
@@ -406,9 +419,9 @@
 
 .sidebar-user .account-popover {
   position: absolute;
-  top: 8px;
+  top: auto;
+  bottom: calc(100% + 8px);
   left: 8px;
-  bottom: auto;
   z-index: 220;
   width: 210px;
 }
@@ -472,7 +485,6 @@
 
 .sidebar-closed .sidebar-primary-nav,
 .sidebar-closed .sidebar-admin-navigation {
-  border-top: 0;
   border-bottom: 0;
 }
 
@@ -485,7 +497,8 @@
 
 .sidebar-closed .sidebar-admin-navigation {
   margin-top: auto;
-  padding: 3px 0 0;
+  padding: 7px 0;
+  border-top: 1px solid var(--sidebar-divider);
 }
 
 .sidebar-closed .sidebar-navigation button,
@@ -509,7 +522,7 @@
 
 .sidebar-closed .sidebar-user {
   margin-top: auto;
-  border-top: 0;
+  border-top: 1px solid var(--sidebar-divider);
   padding: 8px 0;
 }
 

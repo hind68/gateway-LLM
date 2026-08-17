@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 
 import { CheckIcon, CopyIcon } from '../../components/common/icons'
-import { ADMIN_NAV_ITEMS } from './AdminUtils'
+import { ADMIN_NAV_ITEMS, formatKicker } from './AdminUtils'
 
 export function Icon({ name, size = 18, strokeWidth = 1.8 }) {
   const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true }
@@ -28,9 +28,24 @@ export function Icon({ name, size = 18, strokeWidth = 1.8 }) {
 }
 
 export function AdminShell({ activeSection, onSectionChange, onBackToChat, keycloak, children }) {
+  const [isExiting, setIsExiting] = useState(false)
+  const exitTimerRef = useRef(null)
+
+  useEffect(() => () => window.clearTimeout(exitTimerRef.current), [])
+
+  const closeAdmin = () => {
+    if (isExiting) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      onBackToChat?.()
+      return
+    }
+    setIsExiting(true)
+    exitTimerRef.current = window.setTimeout(() => onBackToChat?.(), 260)
+  }
+
   return (
-    <div className="admin-shell">
-      <AdminSidebar activeSection={activeSection} onSectionChange={onSectionChange} onBackToChat={onBackToChat} keycloak={keycloak} />
+    <div className={`admin-shell ${isExiting ? 'is-exiting' : ''}`}>
+      <AdminSidebar activeSection={activeSection} onSectionChange={onSectionChange} onBackToChat={closeAdmin} keycloak={keycloak} />
       <main className="admin-main-panel">{children}</main>
     </div>
   )
@@ -101,7 +116,7 @@ export function AdminSidebar({ activeSection, onSectionChange, onBackToChat, key
 }
 
 export function AdminPageHeader({ eyebrow, title, description, actions }) {
-  return <header className="admin-page-header"><div><div className="admin-eyebrow">{eyebrow}</div><h1>{title}</h1>{description && <p>{description}</p>}</div>{actions && <div className="admin-page-actions">{actions}</div>}</header>
+  return <header className="admin-page-header"><div><div className="admin-eyebrow">{formatKicker(eyebrow)}</div><h1>{title}</h1>{description && <p>{description}</p>}</div>{actions && <div className="admin-page-actions">{actions}</div>}</header>
 }
 
 export function AdminToolbar({ children }) { return <div className="admin-toolbar">{children}</div> }
