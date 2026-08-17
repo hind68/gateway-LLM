@@ -478,11 +478,13 @@
 
 .sidebar-closed .sidebar-primary-nav {
   gap: 3px;
-  padding-bottom: 0;
-  margin-bottom: 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--sidebar-divider);
+  margin-bottom: 6px;
 }
 
 .sidebar-closed .sidebar-admin-navigation {
+  margin-top: auto;
   padding: 3px 0 0;
 }
 
@@ -509,6 +511,10 @@
   margin-top: auto;
   border-top: 0;
   padding: 8px 0;
+}
+
+.sidebar-closed .sidebar-admin-navigation + .sidebar-user {
+  margin-top: 0;
 }
 
 .sidebar-closed .sidebar-user > button {

@@ -21,7 +21,14 @@ export default function useModels({ activeConversation, onError, onLoaded }) {
     try {
       const data = await fetchModelDetails()
       const normalized = Array.isArray(data)
-        ? data.map((item) => ({ alias: item.alias, displayName: cleanModelName(item.displayName || item.alias, item.alias) }))
+        ? data.map((item) => ({
+            alias: item.alias,
+            displayName: cleanModelName(item.displayName || item.alias, item.alias),
+            description: item.description,
+            logoUrl: item.logoUrl,
+            providerCode: item.providerCode,
+            providerName: item.providerName,
+          }))
         : []
       setModels(normalized)
       setSelectedModel((current) => selectAvailableModel(normalized, current))
@@ -66,6 +73,7 @@ export default function useModels({ activeConversation, onError, onLoaded }) {
     isLoadingModels,
     modelDisplayName,
     models,
+    refreshModels: loadModels,
     selectedModel,
     setSelectedModel,
   }

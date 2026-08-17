@@ -12,11 +12,11 @@ export default function ModelCard({ disabled, model, onSelect }) {
       disabled={disabled}
     >
       <div className={`model-card-visual ${meta.tone}`} aria-hidden="true">
-        <ModelLogo alias={model.alias} className="model-card-logo" fallback={meta.initials} />
+        <ModelLogo alias={model.alias} logoUrl={model.logoUrl} className="model-card-logo" fallback={meta.initials} />
       </div>
       <div className="model-card-copy">
         <h3>{model.displayName}</h3>
-        <p>{meta.description}</p>
+        <p>{model.description || meta.description}</p>
       </div>
     </button>
   )

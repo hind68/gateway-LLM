@@ -69,7 +69,7 @@ if [ -z "$client_id" ]; then
     -s standardFlowEnabled=false \
     -s directAccessGrantsEnabled=false \
     -s clientAuthenticatorType=client-secret \
-    -s secret="$KEYCLOAK_ADMIN_CLIENT_SECRET"
+    -s secret="$GATEWAY_ADMIN_CLIENT_SECRET"
   client_id="$("$KCADM" get clients -r "$REALM" -q clientId=gateway-admin --fields id --format csv --noquotes | head -n 1 | tr -d '\r')"
 else
   "$KCADM" update "clients/${client_id}" -r "$REALM" \
@@ -79,7 +79,7 @@ else
     -s standardFlowEnabled=false \
     -s directAccessGrantsEnabled=false \
     -s clientAuthenticatorType=client-secret \
-    -s secret="$KEYCLOAK_ADMIN_CLIENT_SECRET"
+    -s secret="$GATEWAY_ADMIN_CLIENT_SECRET"
 fi
 
 for role_name in query-users view-users manage-users view-realm; do
@@ -87,6 +87,18 @@ for role_name in query-users view-users manage-users view-realm; do
     --uusername service-account-gateway-admin \
     --cclientid realm-management \
     --rolename "$role_name"
+done
+
+# Keycloak 26 adds a wildcard post-logout redirect to clients when an omitted
+# attribute is imported. The live development realm has no such redirect on
+# these clients, so remove the generated default after both fresh imports and
+# ordinary restarts.
+for logout_client in admin-cli broker gateway-admin; do
+  logout_client_id="$("$KCADM" get clients -r "$REALM" -q clientId="$logout_client" --fields id --format csv --noquotes | head -n 1 | tr -d '\r')"
+  if [ -n "$logout_client_id" ]; then
+    "$KCADM" update "clients/${logout_client_id}" -r "$REALM" \
+      -s 'attributes."post.logout.redirect.uris"=null'
+  fi
 done
 
 echo "Keycloak realm ${REALM} provisioned."

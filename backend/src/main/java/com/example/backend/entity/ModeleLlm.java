@@ -37,7 +37,7 @@ public class ModeleLlm {
     @Column(length = 500)
     private String description;
 
-    @Column(name = "logo_url", length = 500)
+    @Column(name = "logo_url", columnDefinition = "TEXT")
     private String logoUrl;
 
     @Enumerated(EnumType.STRING)

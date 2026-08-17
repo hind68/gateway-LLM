@@ -15,6 +15,7 @@ import com.example.backend.repository.RoleLlmRestrictionRepository;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Base64;
 import java.net.URI;
 import org.springframework.http.HttpStatus;
 import org.springframework.core.env.Environment;
@@ -358,16 +359,35 @@ public class AdminModelController {
     ) {
     }
 
-    private String blankToNull(String value) { return value == null || value.isBlank() ? null : value.trim(); }
+    private static String blankToNull(String value) { return value == null || value.isBlank() ? null : value.trim(); }
 
-    private String safeLogoUrl(String value) {
+    static String safeLogoUrl(String value) {
         String normalized = blankToNull(value);
         if (normalized == null) return null;
+        if (normalized.startsWith("data:")) {
+            String prefixPattern = "^data:image/(png|jpeg|webp|gif);base64,";
+            if (!normalized.matches(prefixPattern + "[A-Za-z0-9+/=]+$")) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Local logo must be a PNG, JPEG, WebP or GIF image");
+            }
+            String payload = normalized.replaceFirst(prefixPattern, "");
+            try {
+                if (Base64.getDecoder().decode(payload).length > 512 * 1024) {
+                    throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Local logo must not exceed 512 KB");
+                }
+            } catch (IllegalArgumentException exception) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Local logo is not valid base64 data");
+            }
+            return normalized;
+        }
         try {
             URI uri = URI.create(normalized);
             String scheme = uri.getScheme();
             if (scheme == null || !(scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))) {
                 throw new IllegalArgumentException("Unsupported logo URL scheme");
+            }
+            if ("commons.wikimedia.org".equalsIgnoreCase(uri.getHost()) && uri.getPath().startsWith("/wiki/File:")) {
+                String filename = uri.getRawPath().substring("/wiki/File:".length());
+                return "https://commons.wikimedia.org/wiki/Special:Redirect/file/" + filename;
             }
             return normalized;
         } catch (IllegalArgumentException exception) {

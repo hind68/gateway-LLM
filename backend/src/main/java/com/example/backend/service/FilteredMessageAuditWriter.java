@@ -29,7 +29,7 @@ public class FilteredMessageAuditWriter {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void recordBlocked(UUID userKeycloakId, String originalContent, String reason, DlpAnalysisResponse response) {
-        save(userKeycloakId, originalContent, null, "BLOCKED", reason, response);
+        save(userKeycloakId, originalContent, response == null ? null : response.maskedText(), "BLOCKED", reason, response);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

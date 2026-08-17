@@ -7,13 +7,18 @@ import com.example.backend.entity.AuditLog;
 import com.example.backend.repository.AuditLogRepository;
 import com.example.backend.integration.dlp.DlpPatternClient;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,10 +41,7 @@ public class PatternController {
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public List<Pattern> getPatterns() throws IOException {
-        File file = new File(filePath);
-        if (!file.exists()) {
-            return new ArrayList<>();
-        }
+        File file = patternsFile();
         PatternWrapper wrapper = objectMapper.readValue(file, PatternWrapper.class);
         return wrapper.getPatterns() != null ? wrapper.getPatterns() : new ArrayList<>();
     }
@@ -47,13 +49,9 @@ public class PatternController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public Pattern addPattern(@RequestBody Pattern newPattern, JwtAuthenticationToken auth) throws IOException {
-        File file = new File(filePath);
+        File file = patternsFile();
         PatternWrapper wrapper = new PatternWrapper();
         wrapper.setPatterns(new ArrayList<>());
-
-        if (file.getParentFile() != null && !file.getParentFile().exists()) {
-            file.getParentFile().mkdirs();
-        }
 
         if (file.exists()) {
             wrapper = objectMapper.readValue(file, PatternWrapper.class);
@@ -84,10 +82,7 @@ public class PatternController {
     @PutMapping("/{name}")
     @PreAuthorize("hasRole('ADMIN')")
     public Pattern updatePattern(@PathVariable String name, @RequestBody Pattern updatedPattern, JwtAuthenticationToken auth) throws IOException {
-        File file = new File(filePath);
-        if (!file.exists()) {
-            throw new IllegalArgumentException("Pattern file does not exist");
-        }
+        File file = patternsFile();
         PatternWrapper wrapper = objectMapper.readValue(file, PatternWrapper.class);
         Pattern existing = wrapper.getPatterns() == null ? null : wrapper.getPatterns().stream()
                 .filter(pattern -> name.equals(pattern.getName()))
@@ -113,10 +108,7 @@ public class PatternController {
     @DeleteMapping("/{name}")
     @PreAuthorize("hasRole('ADMIN')")
     public void deletePattern(@PathVariable String name, JwtAuthenticationToken auth) throws IOException {
-        File file = new File(filePath);
-        if (!file.exists()) {
-            return;
-        }
+        File file = patternsFile();
 
         PatternWrapper wrapper = objectMapper.readValue(file, PatternWrapper.class);
         if (wrapper.getPatterns() != null) {
@@ -125,6 +117,33 @@ public class PatternController {
             dlpPatternClient.synchronize(wrapper.getPatterns());
             auditLogRepository.save(new AuditLog("DELETE", "DLP_PATTERN", name, performer(auth)));
         }
+    }
+
+    private File patternsFile() {
+        return resolvePatternsPath(filePath, Path.of("").toAbsolutePath()).toFile();
+    }
+
+    static Path resolvePatternsPath(String configuredPath, Path workingDirectory) {
+        Path normalizedWorkingDirectory = workingDirectory.toAbsolutePath().normalize();
+        LinkedHashSet<Path> candidates = new LinkedHashSet<>();
+
+        if (configuredPath != null && !configuredPath.isBlank()) {
+            Path configured = Path.of(configuredPath);
+            candidates.add(configured.isAbsolute()
+                    ? configured.normalize()
+                    : normalizedWorkingDirectory.resolve(configured).normalize());
+        }
+
+        candidates.add(normalizedWorkingDirectory.resolve("dlp/app/detectors/patterns.json").normalize());
+        candidates.add(normalizedWorkingDirectory.resolve("../dlp/app/detectors/patterns.json").normalize());
+
+        return candidates.stream()
+                .filter(Files::isRegularFile)
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.SERVICE_UNAVAILABLE,
+                        "DLP pattern file was not found. Configure DLP_PATTERNS_FILE with its absolute path."
+                ));
     }
 
     private UUID performer(JwtAuthenticationToken auth) {

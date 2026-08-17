@@ -1,5 +1,6 @@
 ﻿/* Global tokens */
 :root {
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
   --ui-canvas: #ffffff;
   --ui-canvas-cool: #fbfdff;
   --ui-canvas-warm: #fffaf6;

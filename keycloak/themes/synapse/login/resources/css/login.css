@@ -121,6 +121,12 @@ label,
   font-weight: 650;
 }
 
+label[for="username"],
+label[for="password"] {
+  display: block;
+  margin-bottom: 8px;
+}
+
 input[type="text"],
 input[type="email"],
 input[type="password"],
@@ -243,7 +249,26 @@ a,
   font-weight: 650;
 }
 
-#input-error,
+input[aria-invalid="true"],
+.pf-v5-c-form-control[aria-invalid="true"],
+.pf-v5-c-form-control.pf-m-error {
+  border-color: #d98b86 !important;
+  background-color: #fffafa !important;
+  background-image: none !important;
+  box-shadow: 0 0 0 1px rgba(180, 85, 80, .12) !important;
+}
+
+#input-error {
+  display: block;
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #a44f4a;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .alert-error,
 .pf-v5-c-alert.pf-m-danger {
   border-color: rgba(180, 85, 80, .22);

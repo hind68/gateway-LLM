@@ -96,11 +96,13 @@ services:
       KC_HEALTH_ENABLED: "true"
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:?Set KEYCLOAK_ADMIN_USERNAME in .env}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Set KEYCLOAK_ADMIN_PASSWORD in .env}
+      KEYCLOAK_DEMO_PASSWORD: ${KEYCLOAK_DEMO_PASSWORD:?Set KEYCLOAK_DEMO_PASSWORD in .env}
+      GATEWAY_ADMIN_CLIENT_SECRET: ${GATEWAY_ADMIN_CLIENT_SECRET:?Set GATEWAY_ADMIN_CLIENT_SECRET in .env}
     command: ["start-dev", "--import-realm"]
     ports:
       - "${KEYCLOAK_HOST_PORT:-8080}:8080"
     volumes:
-      - ./keycloak/realm-synapse.json:/opt/keycloak/data/import/realm-synapse.json:ro
+      - ./keycloak/import:/opt/keycloak/data/import:ro
       - ./keycloak/themes:/opt/keycloak/themes:ro
     depends_on:
       keycloak-db:
@@ -112,7 +114,7 @@ services:
     environment:
       KEYCLOAK_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:?Set KEYCLOAK_ADMIN_USERNAME in .env}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Set KEYCLOAK_ADMIN_PASSWORD in .env}
-      KEYCLOAK_ADMIN_CLIENT_SECRET: ${KEYCLOAK_ADMIN_CLIENT_SECRET:?Set KEYCLOAK_ADMIN_CLIENT_SECRET in .env}
+      GATEWAY_ADMIN_CLIENT_SECRET: ${GATEWAY_ADMIN_CLIENT_SECRET:?Set GATEWAY_ADMIN_CLIENT_SECRET in .env}
       KEYCLOAK_ADMIN_REALM: ${KEYCLOAK_ADMIN_REALM:-synapse}
     entrypoint: ["/bin/sh", "/opt/keycloak/provision.sh"]
     volumes:

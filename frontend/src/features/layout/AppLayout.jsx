@@ -134,7 +134,7 @@ export default function AppLayout({
   }, [inspectorWidth])
 
   if (admin?.showAdminDashboard) {
-    return <AdminDashboard onError={admin.onError} onNotice={admin.onNotice} onBackToChat={() => admin.setShowAdminDashboard(false)} />
+    return <><AdminDashboard onError={admin.onError} onNotice={admin.onNotice} onModelsChanged={admin.onModelsChanged} onBackToChat={() => admin.setShowAdminDashboard(false)} /><Toast notifications={feedback.notifications} onClose={feedback.onDismissNotification} /></>
   }
 
   return (
@@ -279,6 +279,7 @@ export default function AppLayout({
           <AdminDashboard
             onError={admin.onError}
             onNotice={admin.onNotice}
+            onModelsChanged={admin.onModelsChanged}
           />
         ) : (
           <>
@@ -354,9 +355,8 @@ export default function AppLayout({
         )}
 
         <Toast
-          chatError={feedback.chatError}
-          chatNotice={feedback.chatNotice}
-          onClose={feedback.onClearToast}
+          notifications={feedback.notifications}
+          onClose={feedback.onDismissNotification}
         />
       </main>
 

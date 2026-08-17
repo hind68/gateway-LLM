@@ -17,7 +17,7 @@ from app.detectors.regex_detector import run_regex_detectors, replace_patterns, 
 from app.detectors.presidio_detector import detect_with_presidio, warm_up_models
 from app.pipeline.dedup import deduplicate_matches
 from app.pipeline.ids import assign_ids
-from app.pipeline.masking import mask_text
+from app.pipeline.masking import is_neutralized_placeholder_value, mask_text
 from app.pipeline.alerting import check_and_log_alerts
 from app.pipeline.decision import evaluate_decision, highest_severity, strip_sensitive_values
 from app.config import DLP_MAX_ATTACHMENTS, DLP_MAX_TEXT_LENGTH, MAX_UPLOAD_BYTES, DLP_ADMIN_KEY
@@ -148,7 +148,29 @@ def _success_response(text: str, matches: list[dict], user_id: str | None = None
     }
 
 
-def run_pipeline(text: str, user_id: str | None = None, banned_words: list[str] | None = None) -> dict:
+def _drop_neutralized_matches(text: str, matches: list[dict]) -> list[dict]:
+    """Ignore values that have already been replaced by DLP placeholders."""
+    filtered_matches = []
+    for match in matches:
+        start = match.get("start")
+        end = match.get("end")
+        if (
+            isinstance(start, int)
+            and isinstance(end, int)
+            and 0 <= start < end <= len(text)
+            and is_neutralized_placeholder_value(text[start:end])
+        ):
+            continue
+        filtered_matches.append(match)
+    return filtered_matches
+
+
+def run_pipeline(
+    text: str,
+    user_id: str | None = None,
+    banned_words: list[str] | None = None,
+    filename: str | None = None,
+) -> dict:
     if len(text) > DLP_MAX_TEXT_LENGTH:
         raise HTTPException(status_code=413, detail=f"Text exceeds maximum length of {DLP_MAX_TEXT_LENGTH} characters.")
 
@@ -158,11 +180,12 @@ def run_pipeline(text: str, user_id: str | None = None, banned_words: list[str] 
         + detect_with_presidio(text, language=lang)
         + detect_banned_words(text, banned_words or [])
     )
+    combined = _drop_neutralized_matches(text, combined)
     deduped = deduplicate_matches(combined)
     final_matches = assign_ids(deduped)
 
     # Let the built-in helper format the response with the decision, status, and severity!
-    return _success_response(text, final_matches, user_id=user_id)
+    return _success_response(text, final_matches, user_id=user_id, filename=filename)
 
 def run_pipeline_for_segments(known_text: str, free_text: str, user_id: str | None = None, filename: str | None = None, banned_words: list[str] | None = None) -> dict:
     """
@@ -182,7 +205,12 @@ def run_pipeline_for_segments(known_text: str, free_text: str, user_id: str | No
         # CSV/XLSX, and even those if no column header matched) - avoid
         # a spurious leading "\n" that would shift every offset by one
         # for no reason.
-        return run_pipeline(free_text, user_id=user_id, banned_words=banned_words)
+        return run_pipeline(
+            free_text,
+            user_id=user_id,
+            banned_words=banned_words,
+            filename=filename,
+        )
 
     combined_text = known_text + "\n" + free_text
     if len(combined_text) > DLP_MAX_TEXT_LENGTH:
@@ -191,10 +219,18 @@ def run_pipeline_for_segments(known_text: str, free_text: str, user_id: str | No
             detail=f"Text exceeds maximum length of {DLP_MAX_TEXT_LENGTH} characters.",
         )
 
-    known_matches = run_regex_detectors(known_text)
+    known_matches = _drop_neutralized_matches(
+        known_text,
+        run_regex_detectors(known_text),
+    )
 
     lang = detect_language(free_text)
-    free_matches = run_regex_detectors(free_text) + detect_with_presidio(free_text, language=lang) + detect_banned_words(combined_text, banned_words or [])
+    free_matches = _drop_neutralized_matches(
+        free_text,
+        run_regex_detectors(free_text)
+        + detect_with_presidio(free_text, language=lang)
+        + detect_banned_words(free_text, banned_words or []),
+    )
     offset = len(known_text) + 1  # +1 for the "\n" joiner above
     for m in free_matches:
         m["start"] += offset

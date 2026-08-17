@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useContext } from 'react'
+import { useCallback, useRef, useState, useContext } from 'react'
 import { AuthContext } from './AuthProvider'
 import useConversations from './features/conversations/hooks/useConversations'
 import AppLayout from './features/layout/AppLayout'
@@ -12,29 +12,32 @@ function App() {
   const keycloak = useContext(AuthContext)
   const token = keycloak?.token
 
-  const [chatError, setChatError] = useState('')
-  const [chatNotice, setChatNotice] = useState('')
+  const [notifications, setNotifications] = useState([])
+  const notificationIdRef = useRef(0)
   const [showTabs, setShowTabs] = useState(false)
   const isAdmin = hasAdminRole(token)
   const [showAdminDashboard, setShowAdminDashboard] = useState(false)
 
   const showError = useCallback((message) => {
-    setChatNotice('')
-    setChatError(message)
+    notificationIdRef.current += 1
+    setNotifications((current) => [...current, { id: notificationIdRef.current, kind: 'error', message }])
   }, [])
 
   const showNotice = useCallback((message) => {
-    setChatError('')
-    setChatNotice(message)
+    notificationIdRef.current += 1
+    setNotifications((current) => [...current, { id: notificationIdRef.current, kind: 'success', message }])
   }, [])
 
   const clearChatError = useCallback(() => {
-    setChatError('')
+    setNotifications((current) => current.filter((notification) => notification.kind !== 'error'))
   }, [])
 
   const clearFeedback = useCallback(() => {
-    setChatError('')
-    setChatNotice('')
+    setNotifications([])
+  }, [])
+
+  const dismissNotification = useCallback((id) => {
+    setNotifications((current) => current.filter((notification) => notification.id !== id))
   }, [])
 
   const menus = useAppMenus({
@@ -73,6 +76,7 @@ function App() {
     modelDisplayName: models.modelDisplayName,
     setConversationUiStatus: conversations.status.setConversationUiStatus,
     showError,
+    showNotice,
   })
 
   const controller = useChatController({
@@ -88,12 +92,6 @@ function App() {
       showError,
     },
   })
-
-  useEffect(() => {
-    if (!chatError && !chatNotice) return undefined
-    const timeout = window.setTimeout(clearFeedback, 5000)
-    return () => window.clearTimeout(timeout)
-  }, [chatError, chatNotice, clearFeedback])
 
   const conversationProps = {
     ...conversations,
@@ -136,16 +134,16 @@ function App() {
       models={models}
       conversations={conversationProps}
       feedback={{
-        chatError,
-        chatNotice,
-        onClearToast: clearFeedback,
+        notifications,
+        onDismissNotification: dismissNotification,
       }}
       admin={{
         isAdmin,
         showAdminDashboard,
         setShowAdminDashboard,
         onError: showError,
-        onNotice: showNotice
+        onNotice: showNotice,
+        onModelsChanged: models.refreshModels,
       }}
     />
   )

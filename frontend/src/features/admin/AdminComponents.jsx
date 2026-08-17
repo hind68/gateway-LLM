@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 
+import { CheckIcon, CopyIcon } from '../../components/common/icons'
 import { ADMIN_NAV_ITEMS } from './AdminUtils'
 
 export function Icon({ name, size = 18, strokeWidth = 1.8 }) {
@@ -138,13 +139,27 @@ export function ConfirmDialog({ title, message, confirmLabel = 'Confirmer', onCa
   return <Modal title={title} onClose={onCancel} size="small"><p className="admin-confirm-copy">{message}</p><div className="admin-modal-actions"><button type="button" className="admin-button secondary" onClick={onCancel} disabled={busy}>Annuler</button><button type="button" className="admin-button danger" onClick={onConfirm} disabled={busy}>{busy ? 'En cours…' : confirmLabel}</button></div></Modal>
 }
 
-export function Toast({ message, tone = 'success', onClose }) {
-  if (!message) return null
-  return <div className={`admin-toast ${tone}`} role={tone === 'error' ? 'alert' : 'status'}><span>{tone === 'error' ? '!' : '✓'}</span><p>{message}</p><button type="button" onClick={onClose} aria-label="Fermer"><Icon name="close" size={15} /></button></div>
-}
+export function CopyButton({ value, label = 'Copier', onCopied, onCopyError }) {
+  const [copied, setCopied] = useState(false)
+  const resetTimer = useRef(null)
 
-export function CopyButton({ value, label = 'Copier' }) {
-  return <button type="button" className="admin-copy-button" title={label} aria-label={label} onClick={() => navigator.clipboard?.writeText(String(value || ''))}><Icon name="copy" size={14} /></button>
+  useEffect(() => () => window.clearTimeout(resetTimer.current), [])
+
+  const copy = async () => {
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('Le presse-papiers n’est pas disponible dans ce navigateur.')
+      await navigator.clipboard.writeText(String(value || ''))
+      setCopied(true)
+      window.clearTimeout(resetTimer.current)
+      resetTimer.current = window.setTimeout(() => setCopied(false), 1800)
+      onCopied?.()
+    } catch (error) {
+      onCopyError?.(error)
+    }
+  }
+
+  const accessibleLabel = copied ? 'Copié' : label
+  return <button type="button" className={`admin-copy-button ${copied ? 'copied' : ''}`} title={accessibleLabel} aria-label={accessibleLabel} onClick={copy}>{copied ? <CheckIcon /> : <CopyIcon />}</button>
 }
 
 export function Pagination({ page, totalPages, onChange }) {

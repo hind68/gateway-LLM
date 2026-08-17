@@ -1,5 +1,6 @@
 package com.example.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
@@ -16,6 +17,7 @@ public class FilteredMessage {
     private UUID userKeycloakId;
 
     @Column(name = "original_content", nullable = false, columnDefinition = "TEXT")
+    @JsonIgnore
     private String originalContent;
 
     @Column(name = "redacted_content", columnDefinition = "TEXT")

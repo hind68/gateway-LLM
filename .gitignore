@@ -18,3 +18,8 @@ build/
 # Runtime attachment storage
 /backend/storage/attachments/
 /storage/attachments/
+
+# Raw Keycloak exports can contain password hashes and client secrets.
+/keycloak/export/
+/keycloak/*-raw.json
+/keycloak/import/*-raw.json

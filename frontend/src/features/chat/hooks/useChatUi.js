@@ -37,6 +37,7 @@ export default function useChatUi({
   modelDisplayName,
   setConversationUiStatus,
   showError,
+  showNotice,
 }) {
   const [messages, setMessages] = useState([])
   const [draft, setDraft] = useState('')
@@ -285,13 +286,14 @@ export default function useChatUi({
     if (!text) return false
     try {
       await navigator.clipboard.writeText(text)
+      showNotice?.('Copié dans le presse-papiers.')
       return true
     } catch (error) {
       logDevelopmentError('clipboard failed', error)
       showError('Impossible de copier le contenu.')
       return false
     }
-  }, [showError])
+  }, [showError, showNotice])
 
   return {
     bottomRef,

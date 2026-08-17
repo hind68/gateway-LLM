@@ -84,7 +84,15 @@ In the admin model catalog, each provider can reference its API-key environment 
 
 ## 1. Configure Environment
 
-From the project root:
+For a fresh clone:
+
+```powershell
+git clone https://github.com/hind68/gateway-LLM.git
+cd gateway-LLM
+Copy-Item .env.example .env
+```
+
+If the repository is already cloned, run this from the project root:
 
 ```powershell
 Copy-Item .env.example .env
@@ -110,6 +118,20 @@ POSTGRES_HOST_PORT=5433
 SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5433/secure_llm_gateway
 SPRING_DATASOURCE_USERNAME=secure_llm_user
 SPRING_DATASOURCE_PASSWORD=change_me_local_only
+
+KEYCLOAK_DB_NAME=keycloak
+KEYCLOAK_DB_USER=keycloak
+KEYCLOAK_DB_PASSWORD=choose_a_local_database_password
+KEYCLOAK_ADMIN_USERNAME=admin
+KEYCLOAK_ADMIN_PASSWORD=choose_a_local_admin_console_password
+KEYCLOAK_DEMO_PASSWORD=choose_one_local_demo_login_password
+GATEWAY_ADMIN_CLIENT_SECRET=choose_a_long_random_local_client_secret
+KEYCLOAK_ADMIN_BASE_URL=http://127.0.0.1:8080
+KEYCLOAK_ADMIN_REALM=synapse
+KEYCLOAK_ADMIN_TOKEN_REALM=synapse
+KEYCLOAK_ADMIN_MANAGED_ROLES=ADMIN,INTERN,EXTERN
+KEYCLOAK_ISSUER_URI=http://127.0.0.1:8080/realms/synapse
+KEYCLOAK_HOST_PORT=8080
 ```
 
 Important:
@@ -117,7 +139,9 @@ Important:
 - `.env` is ignored by Git.
 - Keep `LITELLM_MASTER_KEY` identical for LiteLLM and the backend.
 - Port `5433` is used on the host to avoid common conflicts with local PostgreSQL on `5432`.
-- Set the local-only Keycloak variables from `.env.example` in `.env`; the Keycloak administrator password and `gateway-admin` client secret are never committed.
+- `KEYCLOAK_DEMO_PASSWORD` is the shared local password assigned to the imported development users. It must not be a real or reused password.
+- `GATEWAY_ADMIN_CLIENT_SECRET` is used by the backend's confidential service-account client. Use a long random local value.
+- The Keycloak administrator password, demo password and `gateway-admin` client secret are substituted from `.env`; they are never stored in the tracked realm JSON.
 
 ## 2. Start Docker Services
 
@@ -141,13 +165,52 @@ docker compose logs -f litellm
 docker compose logs -f keycloak
 ```
 
-Keycloak is available at `http://localhost:8080`. The first startup imports the
-`synapse` realm, activates the Synapse login theme, creates the `INTERN` and
-`EXTERN` roles, and provisions the confidential `gateway-admin` service client.
-The Keycloak database is stored in the `keycloak_postgres_data` volume. The
-one-shot provisioner may show as exited successfully after startup; rerun it
-with `docker compose run --rm keycloak-provisioner` after changing realm
-automation.
+Keycloak is available at `http://localhost:8080`. On an empty Keycloak database,
+`--import-realm` loads `keycloak/import/synapse-realm.json`. The file preserves the
+development realm UUIDs, users, roles, clients, scopes, mappers, authentication
+flows, locale and Synapse login theme while obtaining local credentials from
+`.env`. The frontend uses the public `synapse-client` authorization-code client
+with PKCE. The backend uses the confidential `gateway-admin` service account with
+only `query-users`, `view-users`, `manage-users` and `view-realm` permissions.
+
+Keycloak skips startup import when a realm named `synapse` already exists. This is
+intentional: restarting the stack does not overwrite or duplicate an existing
+development realm. The one-shot provisioner keeps the local theme, redirects and
+backend service-account configuration aligned and may show as exited successfully
+after startup. Rerun it with `docker compose run --rm keycloak-provisioner` after
+changing those local settings.
+
+### Development users
+
+Every account below uses the value of `KEYCLOAK_DEMO_PASSWORD` from the local
+`.env` file. User UUIDs and role mappings in the import match the inventoried
+development realm.
+
+| Username | Email | Realm roles |
+| --- | --- | --- |
+| `admin` | `admin@local.test` | `ADMIN`, `USER` |
+| `admin1` | `admin1@test.com` | `ADMIN` |
+| `admin2` | `admin2@test.com` | `ADMIN` |
+| `extern1` | `extern1@test.com` | `EXTERN` |
+| `extern2` | `extern2@test.com` | `EXTERN` |
+| `intern1` | `inter1@test.com` | `INTERN` |
+| `intern2` | `intern2@test.com` | `INTERN` |
+| `user` | `user@local.test` | `USER` |
+
+### Destructive local Keycloak reset
+
+The following commands delete the local Keycloak database volume and all realm
+changes made after import. They do not delete the application PostgreSQL volume.
+Do not run them against an environment containing data you need. The exact volume
+prefix comes from the Compose project name; verify it first with
+`docker volume ls`.
+
+```powershell
+docker compose stop keycloak-provisioner keycloak keycloak-db
+docker compose rm -f keycloak-provisioner keycloak keycloak-db
+docker volume rm gateway-llm_keycloak_postgres_data
+docker compose up -d keycloak-db keycloak keycloak-provisioner
+```
 
 ## 3. Run the Backend
 
@@ -163,7 +226,7 @@ $env:KEYCLOAK_ADMIN_BASE_URL="http://localhost:8080"
 $env:KEYCLOAK_ADMIN_REALM="synapse"
 $env:KEYCLOAK_ADMIN_TOKEN_REALM="synapse"
 $env:KEYCLOAK_ADMIN_CLIENT_ID="gateway-admin"
-$env:KEYCLOAK_ADMIN_CLIENT_SECRET="<the local-only value from .env>"
+$env:GATEWAY_ADMIN_CLIENT_SECRET="<the local-only value from .env>"
 # On Windows, use IPv4 if Java times out while reading Keycloak on localhost.
 $env:JAVA_TOOL_OPTIONS="-Djava.net.preferIPv4Stack=true"
 cmd /c mvnw.cmd spring-boot:run

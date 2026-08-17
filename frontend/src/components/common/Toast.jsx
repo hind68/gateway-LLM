@@ -1,74 +1,47 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const EXIT_ANIMATION_MS = 220
 const AUTO_CLOSE_MS = 4000
 
-export default function Toast({ chatError, chatNotice, onClose }) {
-  const incomingMessage = chatError || chatNotice
-  const incomingKind = chatNotice ? 'success' : 'error'
-  const [toast, setToast] = useState(null)
-  const autoCloseTimerRef = useRef(null)
-  const exitTimerRef = useRef(null)
-  const toastKeyRef = useRef(0)
+export default function Toast({ notifications = [], onClose }) {
+  if (!notifications.length) return null
+
+  return (
+    <div className="toast-stack" aria-live="polite" aria-relevant="additions removals">
+      {notifications.map((notification) => (
+        <ToastItem key={notification.id} notification={notification} onClose={onClose} />
+      ))}
+    </div>
+  )
+}
+
+function ToastItem({ notification, onClose }) {
+  const [exiting, setExiting] = useState(false)
 
   useEffect(() => {
-    if (autoCloseTimerRef.current) {
-      window.clearTimeout(autoCloseTimerRef.current)
-      autoCloseTimerRef.current = null
-    }
-
-    if (exitTimerRef.current) {
-      window.clearTimeout(exitTimerRef.current)
-      exitTimerRef.current = null
-    }
-
-    if (incomingMessage) {
-      toastKeyRef.current += 1
-      setToast({
-        key: toastKeyRef.current,
-        kind: incomingKind,
-        message: incomingMessage,
-        exiting: false,
-      })
-      autoCloseTimerRef.current = window.setTimeout(() => {
-        autoCloseTimerRef.current = null
-        onClose()
-      }, AUTO_CLOSE_MS)
-      return () => {
-        if (autoCloseTimerRef.current) {
-          window.clearTimeout(autoCloseTimerRef.current)
-          autoCloseTimerRef.current = null
-        }
-      }
-    }
-
-    setToast((current) => (current ? { ...current, exiting: true } : null))
-    exitTimerRef.current = window.setTimeout(() => {
-      setToast(null)
-      exitTimerRef.current = null
-    }, EXIT_ANIMATION_MS)
+    const autoCloseTimer = window.setTimeout(() => {
+      setExiting(true)
+    }, AUTO_CLOSE_MS)
+    const removeTimer = window.setTimeout(() => {
+      onClose(notification.id)
+    }, AUTO_CLOSE_MS + EXIT_ANIMATION_MS)
 
     return () => {
-      if (exitTimerRef.current) {
-        window.clearTimeout(exitTimerRef.current)
-        exitTimerRef.current = null
-      }
+      window.clearTimeout(autoCloseTimer)
+      window.clearTimeout(removeTimer)
     }
-  }, [incomingKind, incomingMessage, onClose])
-
-  if (!toast) return null
+  }, [notification.id, onClose])
 
   return (
     <div
-      key={toast.key}
-      className={`inline-error ${toast.kind === 'success' ? 'success' : ''} ${toast.exiting ? 'is-exiting' : ''}`}
-      role={toast.kind === 'error' ? 'alert' : 'status'}
+      className={`inline-error ${notification.kind === 'success' ? 'success' : ''} ${exiting ? 'is-exiting' : ''}`}
+      role={notification.kind === 'error' ? 'alert' : 'status'}
     >
       <span className="toast-content">
-        <StatusIcon kind={toast.kind} />
-        <span className="toast-message">{toast.message}</span>
+        <StatusIcon kind={notification.kind} />
+        <span className="toast-message">{notification.message}</span>
       </span>
-      <button type="button" aria-label="Fermer la notification" onClick={onClose}>
+      <button type="button" aria-label="Fermer la notification" onClick={() => onClose(notification.id)}>
         <span className="close-icon" aria-hidden="true"></span>
       </button>
     </div>
