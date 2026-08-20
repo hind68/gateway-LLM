@@ -141,6 +141,7 @@ def test_context_restores_hash_shaped_secret():
 def test_generic_secret_ignores_environment_references():
     assert run_regex_detectors('password=os.getenv("PASSWORD")') == []
     assert run_regex_detectors("token=process.env.ACCESS_TOKEN") == []
+    assert run_regex_detectors('String clientSecret = System.getenv("CLIENT_SECRET");') == []
 
 def test_json_secret_masks_only_literal_value():
     text = '{"password": "abc123XYZ"}'
@@ -323,6 +324,107 @@ def test_french_secret_labels_detect_only_values():
     assert any(m["type"] == "hardcoded_secret" and m["value"] == "AtlasTest!2026" for m in matches)
     assert any(m["type"] == "openai_api_key" and m["value"] == "sk_test_51AtlasExample9xK72pQ4" for m in matches)
     assert all("Mot de passe" not in m["value"] and "Clé API" not in m["value"] for m in matches)
+
+
+def test_contextual_passports_allow_descriptive_words():
+    for text, value in [
+        ("Passeport marocain: MA1234567", "MA1234567"),
+        ("Passport No: XG9081726", "XG9081726"),
+        ("رقم جواز السفر: PA7654321", "PA7654321"),
+    ]:
+        assert any(m["type"] == "passport_number" and m["value"] == value for m in run_regex_detectors(text))
+
+
+def test_valid_international_ibans_are_detected_without_phone_fragment():
+    examples = [
+        "FR76 3000 6000 0112 3456 7890 189",
+        "GB82 WEST 1234 5698 7654 32",
+        "DE89 3704 0044 0532 0130 00",
+    ]
+    for value in examples:
+        matches = run_regex_detectors(f"IBAN: {value}")
+        assert any(m["type"] == "iban" and m["value"] == value for m in matches)
+        assert not any(m["type"] == "phone_number" for m in matches)
+
+
+def test_arabic_digits_and_fully_spaced_moroccan_phones():
+    examples = ["٠٦١٢٣٤٥٦٧٨", "+٢١٢ ٦ ٩٨ ٧٦ ٥٤ ٣٢", "0 6 1 2 3 4 5 6 7 8"]
+    for value in examples:
+        assert any(m["type"] == "phone_number" and m["value"] == value for m in run_regex_detectors(f"Téléphone: {value}"))
+
+
+def test_obfuscated_at_dot_emails_are_detected():
+    for value in ["salma [at] example [dot] ma", "mehdi(at)example(dot)org"]:
+        assert any(m["type"] == "email" and m["value"] == value for m in run_regex_detectors(value))
+
+
+def test_structured_literals_without_digits_are_detected():
+    for text, value in [
+        ("SMTP_PASSWORD=SyntheticMailPassword", "SyntheticMailPassword"),
+        ('password: "SyntheticYamlDbPass!"', "SyntheticYamlDbPass!"),
+        ('const password = "SyntheticJavascriptPassword!";', "SyntheticJavascriptPassword!"),
+    ]:
+        assert any(m["type"] == "hardcoded_secret" and m["value"] == value for m in run_regex_detectors(text))
+
+
+def test_false_positive_fragments_and_negative_secret_context_are_rejected():
+    cases = [
+        ("Transaction ID: TXN-20260820-984215", "credit_card"),
+        ("mongodb+srv://testuser:SyntheticMongoPass@cluster0.example.invalid/dlp", "email"),
+        ("The following identifier is not a secret: CustomerServiceFactory.", "hardcoded_secret"),
+        ("correlation_id=Zx9Qm2Lp7Vw4Nk8Rt3Ys6Hd1Jf5Bc0Aa", "api_key"),
+        ("[PAIR_SECRET_NEGATIVE] correlation_id=Zx9Qm2Lp7Vw4Nk8Rt3Ys6Hd1Jf5Bc0Aa", "api_key"),
+        ("téléphone : (+212) [6] 12.34.56.78", "ip_address"),
+    ]
+    for text, rejected_type in cases:
+        assert not any(m["type"] == rejected_type for m in run_regex_detectors(text))
+
+
+def test_basic_authorization_masks_only_encoded_credential():
+    value = "dGVzdHVzZXI6VGVzdFBhc3N3b3JkIQ=="
+    matches = run_regex_detectors(f"Authorization: Basic {value}")
+    assert any(m["type"] == "hardcoded_secret" and m["value"] == value for m in matches)
+
+
+def test_labeled_multilingual_people_and_common_international_phones():
+    people = [
+        ("[PERSON_NAME] Yassine El Mansouri", "Yassine El Mansouri"),
+        ("[PERSON_NAME] عبد الرحمن العلوي", "عبد الرحمن العلوي"),
+        ("Patient: Salma Bennis", "Salma Bennis"),
+        ("The account holder is Adam Carter.", "Adam Carter"),
+    ]
+    for text, value in people:
+        assert any(m["type"] == "person_name" and m["value"] == value for m in run_regex_detectors(text))
+    for value in ["+1 (202) 555-0147", "+33 6 12 34 56 78", "+44 7700 900123"]:
+        assert any(m["type"] == "phone_number" for m in run_regex_detectors(value))
+
+
+def test_common_vendor_tokens_and_auth_session_values():
+    values = [
+        "glpat-abcdefghijklmnopqrstuvwxyz",
+        "xoxb-" + "123456789012-123456789012-" + "abcdefghijklmnopqrstuvwx",
+        "whsec_test_1234567890abcdefghijklmnop",
+        "hf_" + "SyntheticTokenOnly" + "AbCdEfGhIjKlMnOp",
+        "npm_synthetic1234567890abcdefghijklmnop",
+        "dckr_pat_syntheticabcdefghijklmnopqrst",
+    ]
+    for value in values:
+        assert any(m["type"] == "api_key" and m["value"] == value for m in run_regex_detectors(value))
+    assert any(m["type"] == "hardcoded_secret" for m in run_regex_detectors("sessionid=s%3AsyntheticSessionValue.AFakeSignatureOnlyForDLPTest"))
+
+
+def test_pgp_private_key_and_ipv6():
+    pgp = "-----BEGIN PGP PRIVATE KEY BLOCK-----\ntest-only\n-----END PGP PRIVATE KEY BLOCK-----"
+    assert any(m["type"] == "private_key" and m["value"] == pgp for m in run_regex_detectors(pgp))
+    for value in ["::1", "2001:db8:85a3::8a2e:370:7334"]:
+        assert any(m["type"] == "ip_address" and m["value"] == value for m in run_regex_detectors(value))
+
+
+def test_mongodb_srv_is_one_connection_string_not_an_email():
+    value = "mongodb+srv://testuser:SyntheticMongoPass@cluster0.example.invalid/dlp"
+    matches = run_regex_detectors(value)
+    assert any(m["type"] == "connection_string" and m["value"] == value for m in matches)
+    assert not any(m["type"] == "email" for m in matches)
 
 
 def test_detects_env_style_secret():

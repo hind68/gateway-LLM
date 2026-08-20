@@ -29,3 +29,11 @@ def test_multiple_normalized_detections_keep_original_offsets():
     text = "user@example.\u200bcom puis 06\u00a012\u00a034\u00a056\u00a078"
     matches = run_regex_detectors(text)
     assert all(text[m["start"]:m["end"]] == m["value"] for m in matches)
+
+
+def test_arabic_digits_normalize_but_map_to_original_glyphs():
+    original = "الهاتف ٠٦١٢٣٤٥٦٧٨"
+    normalized = normalize_for_scanning(original)
+    assert "0612345678" in normalized.text
+    start = normalized.text.index("0612345678")
+    assert original[slice(*normalized.original_span(start, start + 10))] == "٠٦١٢٣٤٥٦٧٨"

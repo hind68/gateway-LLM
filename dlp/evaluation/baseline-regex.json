@@ -1,30 +1,30 @@
 {
   "mode": "regex",
-  "samples": 34,
+  "samples": 40,
   "global": {
-    "tp": 22,
-    "fp": 1,
+    "tp": 26,
+    "fp": 4,
     "fn": 7,
-    "precision": 0.9565,
-    "recall": 0.7586,
-    "f1": 0.8462
+    "precision": 0.8667,
+    "recall": 0.7879,
+    "f1": 0.8254
   },
   "entities": {
     "email": {
       "tp": 4,
-      "fp": 0,
+      "fp": 1,
       "fn": 0,
-      "precision": 1.0,
+      "precision": 0.8,
       "recall": 1.0,
-      "f1": 1.0
+      "f1": 0.8889
     },
     "phone_number": {
       "tp": 3,
-      "fp": 0,
-      "fn": 0,
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1": 1.0
+      "fp": 1,
+      "fn": 1,
+      "precision": 0.75,
+      "recall": 0.75,
+      "f1": 0.75
     },
     "moroccan_cin": {
       "tp": 2,
@@ -37,10 +37,10 @@
     "iban": {
       "tp": 1,
       "fp": 0,
-      "fn": 0,
+      "fn": 1,
       "precision": 1.0,
-      "recall": 1.0,
-      "f1": 1.0
+      "recall": 0.5,
+      "f1": 0.6667
     },
     "bank_account": {
       "tp": 1,
@@ -52,19 +52,19 @@
     },
     "credit_card": {
       "tp": 1,
-      "fp": 0,
+      "fp": 1,
       "fn": 0,
-      "precision": 1.0,
+      "precision": 0.5,
       "recall": 1.0,
-      "f1": 1.0
+      "f1": 0.6667
     },
     "person_name": {
-      "tp": 0,
+      "tp": 1,
       "fp": 0,
       "fn": 3,
-      "precision": 0.0,
-      "recall": 0.0,
-      "f1": 0.0
+      "precision": 1.0,
+      "recall": 0.25,
+      "f1": 0.4
     },
     "organization": {
       "tp": 0,
@@ -83,20 +83,20 @@
       "f1": 1.0
     },
     "hardcoded_secret": {
-      "tp": 3,
+      "tp": 4,
       "fp": 0,
-      "fn": 1,
+      "fn": 0,
       "precision": 1.0,
-      "recall": 0.75,
-      "f1": 0.8571
+      "recall": 1.0,
+      "f1": 1.0
     },
     "openai_api_key": {
-      "tp": 1,
+      "tp": 2,
       "fp": 0,
-      "fn": 1,
+      "fn": 0,
       "precision": 1.0,
-      "recall": 0.5,
-      "f1": 0.6667
+      "recall": 1.0,
+      "f1": 1.0
     },
     "github_token": {
       "tp": 1,
@@ -116,16 +116,32 @@
     },
     "alphanumeric_identifier": {
       "tp": 1,
-      "fp": 1,
+      "fp": 0,
       "fn": 0,
-      "precision": 0.5,
+      "precision": 1.0,
       "recall": 1.0,
-      "f1": 0.6667
+      "f1": 1.0
     },
     "passport_number": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "connection_string": {
       "tp": 0,
       "fp": 0,
       "fn": 1,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "api_key": {
+      "tp": 0,
+      "fp": 1,
+      "fn": 0,
       "precision": 0.0,
       "recall": 0.0,
       "f1": 0.0
@@ -163,29 +179,69 @@
       }
     },
     {
-      "id": "fr-labeled-identity-secrets",
+      "id": "international-iban-no-phone-fragment",
+      "counts": {
+        "iban": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1
+        },
+        "phone_number": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 0
+        }
+      }
+    },
+    {
+      "id": "arabic-digits-phone",
+      "counts": {
+        "phone_number": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1
+        }
+      }
+    },
+    {
+      "id": "labeled-arabic-person",
       "counts": {
         "person_name": {
           "tp": 0,
           "fp": 0,
           "fn": 1
-        },
-        "passport_number": {
+        }
+      }
+    },
+    {
+      "id": "mongodb-srv",
+      "counts": {
+        "connection_string": {
           "tp": 0,
           "fp": 0,
           "fn": 1
         },
-        "hardcoded_secret": {
+        "email": {
           "tp": 0,
-          "fp": 0,
-          "fn": 1
-        },
-        "openai_api_key": {
+          "fp": 1,
+          "fn": 0
+        }
+      }
+    },
+    {
+      "id": "generic-secret-negative-label",
+      "counts": {
+        "api_key": {
           "tp": 0,
-          "fp": 0,
-          "fn": 1
-        },
-        "alphanumeric_identifier": {
+          "fp": 1,
+          "fn": 0
+        }
+      }
+    },
+    {
+      "id": "transaction-card-fragment",
+      "counts": {
+        "credit_card": {
           "tp": 0,
           "fp": 1,
           "fn": 0

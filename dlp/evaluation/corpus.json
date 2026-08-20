@@ -33,6 +33,12 @@
     {"id":"placeholder","language":"en","text":"DB_PASSWORD=[HARDCODED_SECRET_1]","expected":[]},
     {"id":"zero-width-email","language":"en","text":"Email: user@example.\u200bcom","expected":[{"type":"email","value":"user@example.\u200bcom"}]},
     {"id":"nbsp-phone","language":"fr","text":"Téléphone 06\u00a012\u00a034\u00a056\u00a078","expected":[{"type":"phone_number","value":"06\u00a012\u00a034\u00a056\u00a078"}]},
-    {"id":"fr-labeled-identity-secrets","language":"fr","text":"Nom : Yassine El Mansouri\nPasseport : MA8473921\nMot de passe : AtlasTest!2026\nClé API : sk_test_51AtlasExample9xK72pQ4","expected":[{"type":"person_name","value":"Yassine El Mansouri"},{"type":"passport_number","value":"MA8473921"},{"type":"hardcoded_secret","value":"AtlasTest!2026"},{"type":"openai_api_key","value":"sk_test_51AtlasExample9xK72pQ4"}]}
+    {"id":"fr-labeled-identity-secrets","language":"fr","text":"Nom : Yassine El Mansouri\nPasseport : MA8473921\nMot de passe : AtlasTest!2026\nClé API : sk_test_51AtlasExample9xK72pQ4","expected":[{"type":"person_name","value":"Yassine El Mansouri"},{"type":"passport_number","value":"MA8473921"},{"type":"hardcoded_secret","value":"AtlasTest!2026"},{"type":"openai_api_key","value":"sk_test_51AtlasExample9xK72pQ4"}]},
+    {"id":"international-iban-no-phone-fragment","language":"en","text":"IBAN: DE89 3704 0044 0532 0130 00","expected":[{"type":"iban","value":"DE89 3704 0044 0532 0130 00"}]},
+    {"id":"arabic-digits-phone","language":"ar","text":"الهاتف: ٠٦١٢٣٤٥٦٧٨","expected":[{"type":"phone_number","value":"٠٦١٢٣٤٥٦٧٨"}]},
+    {"id":"labeled-arabic-person","language":"ar","text":"[PERSON_NAME] عبد الرحمن العلوي","expected":[{"type":"person_name","value":"عبد الرحمن العلوي"}]},
+    {"id":"mongodb-srv","language":"en","text":"DATABASE_URL=mongodb+srv://testuser:SyntheticMongoPass@cluster0.example.invalid/dlp","expected":[{"type":"connection_string","value":"mongodb+srv://testuser:SyntheticMongoPass@cluster0.example.invalid/dlp"}]},
+    {"id":"generic-secret-negative-label","language":"en","text":"[PAIR_SECRET_NEGATIVE] correlation_id=Zx9Qm2Lp7Vw4Nk8Rt3Ys6Hd1Jf5Bc0Aa","expected":[]},
+    {"id":"transaction-card-fragment","language":"en","text":"Transaction ID: TXN-20260820-984215","expected":[]}
   ]
 }

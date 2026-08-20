@@ -48,17 +48,28 @@ def _generic_secret_shape(value: str) -> bool:
     )
 
 
+def _valid_ip(value: str) -> bool:
+    try:
+        ipaddress.ip_address(value)
+        return True
+    except ValueError:
+        return False
+
+
 _VALIDATORS = {
     "luhn": is_luhn_valid,
     "iban_checksum": is_iban_valid,
     "mixed_case": lambda v: any(c.isupper() for c in v) and any(c.islower() for c in v),
     "generic_secret": _generic_secret_shape,
+    "ip_address": lambda value: _valid_ip(value),
 }
 
 _SECRET_CONTEXT = re.compile(r"(?i)\b(?:token|api[_-]?key|apikey|password|passwd|pwd|secret|client_secret|access_token|refresh_token|private_key|credential)\b")
-_ENV_REFERENCE = re.compile(r"(?i)(?:os\.getenv\s*\(|os\.environ\s*\[|process\.env\.|\$\{)[^\n]{0,100}$")
+_ENV_REFERENCE = re.compile(r"(?i)(?:os\.getenv\s*\(|os\.environ\s*\[|system\.getenv\s*\(|process\.env\.|\$\{)[^\n]{0,100}$")
 _UUID_OR_HASH = re.compile(r"(?i)^(?:[0-9a-f]{32,64}|[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})$")
 _SENSITIVE_INFRA_CONTEXT = re.compile(r"(?i)\b(?:production|prod|database|db|vpn|ssh|server|internal|credential)s?\b")
+_NEGATIVE_SECRET_CONTEXT = re.compile(r"(?i)\b(?:not|isn['’]?t|pas|n['’]est\s+pas)\s+(?:a\s+|un[e]?\s+)?secret\b")
+_PLACEHOLDER_SECRET = re.compile(r"(?i)^(?:change(?:me|it)|replace[_-]?me|your[_-].*|example|dummy|<[^>]+>|\$\{[^}]+\})$")
 
 
 def _classify_ip(value: str, window: str) -> tuple[str, str]:
@@ -180,13 +191,32 @@ def _run_rules(rules: list[dict], text: str) -> list[dict]:
             if rule["validator"] and not rule["validator"](value):
                 continue
             window = text[max(0, start - DLP_CONTEXT_WINDOW):min(len(text), end + DLP_CONTEXT_WINDOW)]
-            context_signals = ["secret_keyword"] if _SECRET_CONTEXT.search(window) else []
+            context_window = re.sub(r"\[[A-Z0-9_]+\]", " ", window)
+            context_signals = ["secret_keyword"] if _SECRET_CONTEXT.search(context_window) else []
             if rule["validator_name"] == "generic_secret":
-                prefix = text[max(0, start - DLP_CONTEXT_WINDOW):start]
+                prefix = re.sub(r"\[[A-Z0-9_]+\]", " ", text[max(0, start - DLP_CONTEXT_WINDOW):start])
                 if _ENV_REFERENCE.search(prefix):
                     continue
                 # UUIDs and hashes need explicit sensitive context; ordinary identifiers do not.
                 if _UUID_OR_HASH.fullmatch(value) and not context_signals:
+                    continue
+                if not context_signals:
+                    continue
+            if rule["type"] in {"hardcoded_secret", "hardcoded_password", "api_key"}:
+                prefix = text[max(0, start - DLP_CONTEXT_WINDOW):start]
+                if _NEGATIVE_SECRET_CONTEXT.search(prefix) or _PLACEHOLDER_SECRET.fullmatch(value.strip("'\"")):
+                    continue
+            if rule["type"] == "email":
+                prefix = text[max(0, start - DLP_CONTEXT_WINDOW):start]
+                if re.search(r"(?i)(?:mongodb(?:\+srv)?|postgresql?|mysql|redis)://[^\s@]*:$", prefix):
+                    continue
+            if rule["type"] == "phone_number" and re.search(r"(?i)\bIBAN\b[^\n]{0,40}$", text[max(0, start - 50):start]):
+                continue
+            if rule["type"] == "credit_card" and re.search(r"(?i)(?:TXN|INV|ORDER|CASE)-[^\n]{0,24}$", text[max(0, start - 30):start]):
+                continue
+            if rule["type"] == "ip_address":
+                prefix = text[max(0, start - 30):start]
+                if re.search(r"(?i)(?:t[eé]l[eé]phone|phone|mobile|gsm|whatsapp)[^\n]{0,24}$", prefix):
                     continue
             evidence = DetectionEvidence(
                 entity_type=rule["type"], start=start, end=end, source="regex",

@@ -35,6 +35,10 @@ def normalize_for_scanning(text: str) -> NormalizedText:
         # NFKC is intentionally per code point so expansions retain a precise map.
         replacement = unicodedata.normalize("NFKC", replacement)
         for normalized_char in replacement:
+            # Arabic-Indic and other Unicode decimal digits become ASCII for
+            # format validators while retaining their original spans.
+            if normalized_char.isdecimal() and not normalized_char.isascii():
+                normalized_char = str(unicodedata.digit(normalized_char))
             output.append(normalized_char)
             spans.append((index, index + 1))
     # Compact common email obfuscation while retaining every original span.

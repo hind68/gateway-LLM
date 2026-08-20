@@ -143,7 +143,7 @@
         {
             "name": "database_connection_string",
             "type": "connection_string",
-            "pattern": "\\b(?:postgresql|postgres|mysql|mongodb|redis)://[^\\s<]+",
+            "pattern": "(?i)\\b(?:jdbc:)?(?:postgresql|postgres|mysql|mongodb(?:\\+srv)?|redis)://[^\\s<]+",
             "severity": "high",
             "action": "BLOCK",
             "enabled": true,
@@ -163,7 +163,7 @@
         {
             "name": "env_style_secret",
             "type": "hardcoded_secret",
-            "pattern": "(?i)(?:[\\'\"])?\\b\\w*(?:secret|token|password|passwd|pwd|api[_-]?key|private[_-]?key|client[_-]?secret)\\w*(?:[\\'\"])?\\s*[:=]\\s*[\\'\"]?(?!os\\.getenv)(?!os\\.environ)(?!process\\.env)(?!\\$\\{)(?=[^\\s\\'\"]{4,64})(?=[^\\s\\'\"]*[A-Za-z])(?=[^\\s\\'\"]*\\d)([^\\s\\'\",}]{4,64})",
+            "pattern": "(?i)(?:[\\'\"])?\\b\\w*(?:secret|token|password|passwd|pwd|api[_-]?key|private[_-]?key|client[_-]?secret)\\w*(?:[\\'\"])?\\s*[:=]\\s*[\\'\"]?(?!os\\.getenv)(?!os\\.environ)(?!system\\.getenv)(?!process\\.env)(?!\\$\\{)(?=[^\\s\\'\"]{6,128})(?=[^\\s\\'\"]*[A-Za-z])([^\\s\\'\",}]{6,128})",
             "severity": "high",
             "action": "BLOCK",
             "enabled": true,
@@ -303,7 +303,7 @@
         {
             "name": "phone_local",
             "type": "phone",
-            "pattern": "\\b0[5-7](?:[\\s.-]?\\d{2}){4}\\b",
+            "pattern": "(?<!\\d)0[\\s.-]?[5-7](?:[\\s.-]?\\d){8}(?!\\d)",
             "severity": "medium",
             "action": "BLOCK",
             "enabled": true,
@@ -313,7 +313,7 @@
         {
             "name": "phone_international",
             "type": "phone",
-            "pattern": "\\+212(?:[\\s.-]?\\(0\\))?[\\s.-]?[5-7](?:[\\s.-]?\\d{2}){4}(?!\\d)",
+            "pattern": "\\+212(?:[\\s.-]?\\(0\\))?[\\s.-]?[5-7](?:[\\s.-]?\\d){8}(?!\\d)",
             "severity": "medium",
             "action": "BLOCK",
             "enabled": true,
@@ -323,7 +323,7 @@
         {
             "name": "passport_number_contextual",
             "type": "passport_number",
-            "pattern": "(?i)(?:\\b(?:passeport|passport)\\b|جواز\\s+السفر)[^A-Za-z0-9\\n]{0,12}([A-Z]{1,2}\\d{6,9})(?![A-Za-z0-9])",
+            "pattern": "(?i)(?:\\b(?:passeport|passport)\\b|جواز\\s+السفر)[^\\n]{0,24}?([A-Z]{1,2}\\d{6,9})(?![A-Za-z0-9])",
             "severity": "high",
             "action": "BLOCK",
             "enabled": true,
@@ -333,7 +333,7 @@
         {
             "name": "multilingual_labeled_secret",
             "type": "hardcoded_secret",
-            "pattern": "(?i)(?:mot\\s+de\\s+passe|clé\\s+api|cle\\s+api|كلمة\\s+المرور|مفتاح\\s+api|motdepasse|secret|lmot\\s+de\\s+passe)\\s*[:=]\\s*[\\'\"]?(?!os\\.getenv)(?!os\\.environ)(?!process\\.env)(?!\\$\\{)([^\\s\\'\",}]{6,128})",
+            "pattern": "(?i)(?:mot\\s+de\\s+passe|clé\\s+api|cle\\s+api|كلمة\\s+المرور|مفتاح\\s+api|motdepasse|secret|lmot\\s+de\\s+passe)\\s*[:=]\\s*[\\'\"]?(?!os\\.getenv)(?!os\\.environ)(?!system\\.getenv)(?!process\\.env)(?!\\$\\{)([^\\s\\'\",}]{6,128})",
             "severity": "high",
             "action": "BLOCK",
             "enabled": true,
@@ -349,6 +349,96 @@
             "enabled": true,
             "validator": null,
             "capture_group": 1
+        },
+        {
+            "name": "iban_international_validated",
+            "type": "iban",
+            "pattern": "(?i)(?<![A-Z0-9])[A-Z]{2}\\d{2}(?:[ -]?[A-Z0-9]){11,30}(?![A-Z0-9])",
+            "severity": "high",
+            "action": "BLOCK",
+            "enabled": true,
+            "validator": "iban_checksum",
+            "capture_group": null
+        },
+        {
+            "name": "email_obfuscated_words",
+            "type": "email",
+            "pattern": "(?i)(?<![\\w.-])[\\w.+-]+\\s*(?:\\[at\\]|\\(at\\))\\s*[A-Z0-9-]+(?:\\s*(?:\\[dot\\]|\\(dot\\))\\s*[A-Z0-9-]+)+(?![\\w.-])",
+            "severity": "medium",
+            "action": "BLOCK",
+            "enabled": true,
+            "validator": null,
+            "capture_group": null
+        },
+        {
+            "name": "basic_authorization",
+            "type": "hardcoded_secret",
+            "pattern": "(?i)\\bAuthorization\\s*:\\s*Basic\\s+([A-Za-z0-9+/]{12,}={0,2})",
+            "severity": "high",
+            "action": "BLOCK",
+            "enabled": true,
+            "validator": null,
+            "capture_group": 1
+        },
+        {
+            "name": "labeled_person_multilingual",
+            "type": "person_name",
+            "pattern": "(?i)(?:\\[PERSON_NAME\\]|\\b(?:patient|customer|cardholder|incident owner|account holder(?:\\s+is)?|my name is|je m['’]appelle|smiti)\\b)\\s*:?[ \\t]*([A-ZÀ-Ü][a-zà-ÿ]+(?:[ \\t]+(?:El[ \\t]+)?[A-ZÀ-Ü][a-zà-ÿ]+){1,3}|[\\u0600-\\u06FF]+(?:[ \\t]+[\\u0600-\\u06FF]+){1,4})",
+            "severity": "medium",
+            "action": "BLOCK",
+            "enabled": true,
+            "validator": null,
+            "capture_group": 1
+        },
+        {
+            "name": "phone_common_international",
+            "type": "phone_number",
+            "pattern": "(?<!\\d)\\+(?:1|33|44)(?:[ .()-]*\\d){9,10}(?!\\d)",
+            "severity": "medium",
+            "action": "BLOCK",
+            "enabled": true,
+            "validator": null,
+            "capture_group": null
+        },
+        {
+            "name": "common_vendor_tokens",
+            "type": "api_key",
+            "pattern": "(?i)(?<![A-Za-z0-9_])(?:glpat-[A-Za-z0-9_-]{20,}|xox[baprs]-[A-Za-z0-9-]{24,}|whsec_[A-Za-z0-9_-]{20,}|hf_[A-Za-z0-9_-]{20,}|npm_[A-Za-z0-9_-]{20,}|dckr_pat_[A-Za-z0-9_-]{20,})(?![A-Za-z0-9_-])",
+            "severity": "high",
+            "action": "BLOCK",
+            "enabled": true,
+            "validator": null,
+            "capture_group": null
+        },
+        {
+            "name": "auth_session_values",
+            "type": "hardcoded_secret",
+            "pattern": "(?i)\\b(?:sessionid|auth_token|csrf_token|totp_secret|security answer|recovery code)\\b\\s*[:=]\\s*[\\'\"]?([^\\s\\'\",;]{8,128})",
+            "severity": "high",
+            "action": "BLOCK",
+            "enabled": true,
+            "validator": null,
+            "capture_group": 1
+        },
+        {
+            "name": "pgp_private_key",
+            "type": "private_key",
+            "pattern": "(?s)-----BEGIN PGP PRIVATE KEY BLOCK-----.*?-----END PGP PRIVATE KEY BLOCK-----",
+            "severity": "high",
+            "action": "BLOCK",
+            "enabled": true,
+            "validator": null,
+            "capture_group": null
+        },
+        {
+            "name": "ipv6_validated",
+            "type": "ip_address",
+            "pattern": "(?i)(?<![A-F0-9:])(?:[A-F0-9]{1,4}(?::[A-F0-9]{0,4}){2,7}|::1)(?![A-F0-9:])",
+            "severity": "medium",
+            "action": null,
+            "enabled": true,
+            "validator": "ip_address",
+            "capture_group": null
         }
     ]
 }
