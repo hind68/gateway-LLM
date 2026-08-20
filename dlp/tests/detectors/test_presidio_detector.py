@@ -108,6 +108,12 @@ def test_field_labels_and_document_headings_are_not_nlp_values(monkeypatch):
         assert detector.detect_with_presidio(text, language="fr") == []
 
 
+def test_code_on_following_line_does_not_suppress_person(monkeypatch):
+    text = "Please contact Yassine El Mansouri regarding the incident.\ncurl https://api.test"
+    monkeypatch.setattr(detector, "get_analyzer", lambda: FakeGenericFalsePositiveAnalyzer("PERSON", "Yassine El Mansouri"))
+    assert any(m["type"] == "person_name" for m in detector.detect_with_presidio(text, language="en"))
+
+
 def test_generic_nlp_entities_are_filtered_in_technical_content(monkeypatch):
     text = 'curl https://api.example.test -H "Content-Type: application/json" -H "Authorization: Bearer token"'
     monkeypatch.setattr(detector, "get_analyzer", lambda: FakeGenericFalsePositiveAnalyzer("LOCATION", "application"))

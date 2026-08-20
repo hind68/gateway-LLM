@@ -39,6 +39,12 @@
     {"id":"labeled-arabic-person","language":"ar","text":"[PERSON_NAME] عبد الرحمن العلوي","expected":[{"type":"person_name","value":"عبد الرحمن العلوي"}]},
     {"id":"mongodb-srv","language":"en","text":"DATABASE_URL=mongodb+srv://testuser:SyntheticMongoPass@cluster0.example.invalid/dlp","expected":[{"type":"connection_string","value":"mongodb+srv://testuser:SyntheticMongoPass@cluster0.example.invalid/dlp"}]},
     {"id":"generic-secret-negative-label","language":"en","text":"[PAIR_SECRET_NEGATIVE] correlation_id=Zx9Qm2Lp7Vw4Nk8Rt3Ys6Hd1Jf5Bc0Aa","expected":[]},
-    {"id":"transaction-card-fragment","language":"en","text":"Transaction ID: TXN-20260820-984215","expected":[]}
+    {"id":"transaction-card-fragment","language":"en","text":"Transaction ID: TXN-20260820-984215","expected":[]},
+    {"id":"email-sentence-boundary","language":"en","text":"Email adam.carter@example.org. Send the payment.","expected":[{"type":"email","value":"adam.carter@example.org"}]},
+    {"id":"customer-prose-not-name-label","language":"en","text":"The customer lives in Casablanca and works in Rabat.","expected":[]},
+    {"id":"shell-env-reference","language":"en","text":"TOKEN=$ACCESS_TOKEN","expected":[]},
+    {"id":"imei-context","language":"en","text":"IMEI: 490154203237518","expected":[{"type":"imei","value":"490154203237518"}]},
+    {"id":"url-embedded-password","language":"en","text":"https://synthetic-user:SyntheticGitToken@example.invalid/repo.git","expected":[{"type":"hardcoded_secret","value":"SyntheticGitToken"}]},
+    {"id":"secret-context-two-records","language":"en","text":"[PAIR_SECRET_POSITIVE] api_key=Zx9Qm2Lp7Vw4Nk8Rt3Ys6Hd1Jf5Bc0Aa\n[PAIR_SECRET_NEGATIVE] correlation_id=Zx9Qm2Lp7Vw4Nk8Rt3Ys6Hd1Jf5Bc0Aa","expected":[{"type":"api_key","value":"Zx9Qm2Lp7Vw4Nk8Rt3Ys6Hd1Jf5Bc0Aa"}]}
   ]
 }

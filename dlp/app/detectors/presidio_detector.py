@@ -216,6 +216,9 @@ def _is_technical_context_near_span(
         return False
     if start is None or end is None:
         return _is_technical_context(text)
-    window_start = max(0, start - radius)
-    window_end = min(len(text), end + radius)
+    line_start = text.rfind("\n", 0, start) + 1
+    following_newline = text.find("\n", end)
+    line_end = len(text) if following_newline < 0 else following_newline
+    window_start = max(line_start, start - radius)
+    window_end = min(line_end, end + radius)
     return _is_technical_context(text[window_start:window_end])

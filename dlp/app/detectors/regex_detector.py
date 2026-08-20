@@ -65,11 +65,33 @@ _VALIDATORS = {
 }
 
 _SECRET_CONTEXT = re.compile(r"(?i)\b(?:token|api[_-]?key|apikey|password|passwd|pwd|secret|client_secret|access_token|refresh_token|private_key|credential)\b")
-_ENV_REFERENCE = re.compile(r"(?i)(?:os\.getenv\s*\(|os\.environ\s*\[|system\.getenv\s*\(|process\.env\.|\$\{)[^\n]{0,100}$")
+_ENV_REFERENCE = re.compile(r"(?i)(?:os\.getenv\s*\(|os\.environ\s*\[|system\.getenv\s*\(|process\.env\.|\$\{|\$[A-Z_][A-Z0-9_]*)[^\n]{0,100}$")
 _UUID_OR_HASH = re.compile(r"(?i)^(?:[0-9a-f]{32,64}|[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})$")
 _SENSITIVE_INFRA_CONTEXT = re.compile(r"(?i)\b(?:production|prod|database|db|vpn|ssh|server|internal|credential)s?\b")
 _NEGATIVE_SECRET_CONTEXT = re.compile(r"(?i)\b(?:not|isn['’]?t|pas|n['’]est\s+pas)\s+(?:a\s+|un[e]?\s+)?secret\b")
 _PLACEHOLDER_SECRET = re.compile(r"(?i)^(?:change(?:me|it)|replace[_-]?me|your[_-].*|example|dummy|<[^>]+>|\$\{[^}]+\})$")
+_SHELL_REFERENCE = re.compile(r"(?i)^\$(?:\{[A-Z_][A-Z0-9_]*\}|[A-Z_][A-Z0-9_]*)$")
+
+
+def _line_bounds(text: str, start: int, end: int) -> tuple[int, int]:
+    line_start = text.rfind("\n", 0, start) + 1
+    line_end = text.find("\n", end)
+    return line_start, len(text) if line_end < 0 else line_end
+
+
+def _secret_context_window(text: str, start: int, end: int) -> str:
+    line_start, line_end = _line_bounds(text, start, end)
+    current_line = text[line_start:line_end]
+    if _SECRET_CONTEXT.search(current_line):
+        return current_line
+    # Preserve intentional `client_secret=\nvalue` support without allowing an
+    # unrelated secret-bearing line to influence the next record.
+    if line_start:
+        previous_start = text.rfind("\n", 0, line_start - 1) + 1
+        previous_line = text[previous_start:line_start - 1]
+        if re.search(r"[:=]\s*$", previous_line) and _SECRET_CONTEXT.search(previous_line):
+            return previous_line + "\n" + current_line
+    return current_line
 
 
 def _classify_ip(value: str, window: str) -> tuple[str, str]:
@@ -191,7 +213,7 @@ def _run_rules(rules: list[dict], text: str) -> list[dict]:
             if rule["validator"] and not rule["validator"](value):
                 continue
             window = text[max(0, start - DLP_CONTEXT_WINDOW):min(len(text), end + DLP_CONTEXT_WINDOW)]
-            context_window = re.sub(r"\[[A-Z0-9_]+\]", " ", window)
+            context_window = re.sub(r"\[[A-Z0-9_]+\]", " ", _secret_context_window(text, start, end))
             context_signals = ["secret_keyword"] if _SECRET_CONTEXT.search(context_window) else []
             if rule["validator_name"] == "generic_secret":
                 prefix = re.sub(r"\[[A-Z0-9_]+\]", " ", text[max(0, start - DLP_CONTEXT_WINDOW):start])
@@ -204,14 +226,18 @@ def _run_rules(rules: list[dict], text: str) -> list[dict]:
                     continue
             if rule["type"] in {"hardcoded_secret", "hardcoded_password", "api_key"}:
                 prefix = text[max(0, start - DLP_CONTEXT_WINDOW):start]
-                if _NEGATIVE_SECRET_CONTEXT.search(prefix) or _PLACEHOLDER_SECRET.fullmatch(value.strip("'\"")):
+                if (_NEGATIVE_SECRET_CONTEXT.search(prefix)
+                        or _PLACEHOLDER_SECRET.fullmatch(value.strip("'\""))
+                        or _SHELL_REFERENCE.fullmatch(value.strip("'\""))):
                     continue
             if rule["type"] == "email":
                 prefix = text[max(0, start - DLP_CONTEXT_WINDOW):start]
                 if re.search(r"(?i)(?:mongodb(?:\+srv)?|postgresql?|mysql|redis)://[^\s@]*:$", prefix):
                     continue
-            if rule["type"] == "phone_number" and re.search(r"(?i)\bIBAN\b[^\n]{0,40}$", text[max(0, start - 50):start]):
-                continue
+            if rule["type"] == "phone_number":
+                line_start, line_end = _line_bounds(text, start, end)
+                if re.search(r"(?i)(?:\bIBAN\b|\[IBAN(?:_|\]))", text[line_start:line_end]):
+                    continue
             if rule["type"] == "credit_card" and re.search(r"(?i)(?:TXN|INV|ORDER|CASE)-[^\n]{0,24}$", text[max(0, start - 30):start]):
                 continue
             if rule["type"] == "ip_address":

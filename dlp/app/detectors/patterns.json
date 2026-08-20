@@ -163,7 +163,7 @@
         {
             "name": "env_style_secret",
             "type": "hardcoded_secret",
-            "pattern": "(?i)(?:[\\'\"])?\\b\\w*(?:secret|token|password|passwd|pwd|api[_-]?key|private[_-]?key|client[_-]?secret)\\w*(?:[\\'\"])?\\s*[:=]\\s*[\\'\"]?(?!os\\.getenv)(?!os\\.environ)(?!system\\.getenv)(?!process\\.env)(?!\\$\\{)(?=[^\\s\\'\"]{6,128})(?=[^\\s\\'\"]*[A-Za-z])([^\\s\\'\",}]{6,128})",
+            "pattern": "(?i)(?:[\\'\"])?\\b\\w*(?:secret|token|password|passwd|pwd|api[_-]?key|private[_-]?key|client[_-]?secret)\\w*(?:[\\'\"])?\\s*[:=]\\s*[\\'\"]?(?!os\\.getenv)(?!os\\.environ)(?!system\\.getenv)(?!process\\.env)(?!\\$\\{)(?!\\$[A-Z_][A-Z0-9_]*)(?=[^\\s\\'\"]{6,128})(?=[^\\s\\'\"]*[A-Za-z])([^\\s\\'\",}]{6,128})",
             "severity": "high",
             "action": "BLOCK",
             "enabled": true,
@@ -333,7 +333,7 @@
         {
             "name": "multilingual_labeled_secret",
             "type": "hardcoded_secret",
-            "pattern": "(?i)(?:mot\\s+de\\s+passe|clé\\s+api|cle\\s+api|كلمة\\s+المرور|مفتاح\\s+api|motdepasse|secret|lmot\\s+de\\s+passe)\\s*[:=]\\s*[\\'\"]?(?!os\\.getenv)(?!os\\.environ)(?!system\\.getenv)(?!process\\.env)(?!\\$\\{)([^\\s\\'\",}]{6,128})",
+            "pattern": "(?i)(?:mot\\s+de\\s+passe|clé\\s+api|cle\\s+api|كلمة\\s+المرور|مفتاح\\s+api|motdepasse|secret|lmot\\s+de\\s+passe)\\s*[:=]\\s*[\\'\"]?(?!os\\.getenv)(?!os\\.environ)(?!system\\.getenv)(?!process\\.env)(?!\\$\\{)(?!\\$[A-Z_][A-Z0-9_]*)([^\\s\\'\",}]{6,128})",
             "severity": "high",
             "action": "BLOCK",
             "enabled": true,
@@ -383,7 +383,7 @@
         {
             "name": "labeled_person_multilingual",
             "type": "person_name",
-            "pattern": "(?i)(?:\\[PERSON_NAME\\]|\\b(?:patient|customer|cardholder|incident owner|account holder(?:\\s+is)?|my name is|je m['’]appelle|smiti)\\b)\\s*:?[ \\t]*([A-ZÀ-Ü][a-zà-ÿ]+(?:[ \\t]+(?:El[ \\t]+)?[A-ZÀ-Ü][a-zà-ÿ]+){1,3}|[\\u0600-\\u06FF]+(?:[ \\t]+[\\u0600-\\u06FF]+){1,4})",
+            "pattern": "(?i)(?:\\[PERSON_NAME\\][ \\t]*|\\b(?:patient|customer|cardholder|incident owner)\\b[ \\t]*:[ \\t]*|\\b(?:account holder[ \\t]+is|my name is|je m['’]appelle|smiti)\\b[ \\t]+)([A-ZÀ-Ü][a-zà-ÿ]+(?:[ \\t]+(?:El[ \\t]+)?[A-ZÀ-Ü][a-zà-ÿ]+){1,3}|[\\u0600-\\u06FF]+(?:[ \\t]+[\\u0600-\\u06FF]+){1,4})",
             "severity": "medium",
             "action": "BLOCK",
             "enabled": true,
@@ -439,6 +439,66 @@
             "enabled": true,
             "validator": "ip_address",
             "capture_group": null
+        },
+        {
+            "name": "imei_contextual",
+            "type": "imei",
+            "pattern": "(?i)\\bIMEI\\b\\s*[:=]\\s*(\\d{15})(?!\\d)",
+            "severity": "high",
+            "action": "BLOCK",
+            "enabled": true,
+            "validator": null,
+            "capture_group": 1
+        },
+        {
+            "name": "vendor_api_tokens_extended",
+            "type": "api_key",
+            "pattern": "(?i)(?<![A-Za-z0-9_])(?:sk_test_[A-Za-z0-9_-]{20,}|SG\\.[A-Za-z0-9_-]{16,}\\.[A-Za-z0-9_-]{20,}|AIzaSy[A-Za-z0-9_-]{20,})(?![A-Za-z0-9_-])",
+            "severity": "high",
+            "action": "BLOCK",
+            "enabled": true,
+            "validator": null,
+            "capture_group": null
+        },
+        {
+            "name": "infrastructure_secret_assignment",
+            "type": "hardcoded_secret",
+            "pattern": "(?i)\\b(?:pre_shared_key|accountkey|wifi[ _-]?password)\\b\\s*[:=]\\s*[\\'\"]?([^\\s\\'\",;]{8,256})",
+            "severity": "high",
+            "action": "BLOCK",
+            "enabled": true,
+            "validator": null,
+            "capture_group": 1
+        },
+        {
+            "name": "url_embedded_password",
+            "type": "hardcoded_secret",
+            "pattern": "(?i)\\b(?:https?|ftp)://[^:\\s/@]+:([^@\\s/]+)@",
+            "severity": "high",
+            "action": "BLOCK",
+            "enabled": true,
+            "validator": null,
+            "capture_group": 1
+        },
+        {
+            "name": "curl_basic_password",
+            "type": "hardcoded_secret",
+            "pattern": "(?i)\\bcurl\\b[^\\n]{0,40}?-u\\s+[\\'\"]?[^:\\s\\'\"]+:([^\\s\\'\"]+)",
+            "severity": "high",
+            "action": "BLOCK",
+            "enabled": true,
+            "validator": null,
+            "capture_group": 1
+        },
+        {
+            "name": "sql_literal_password",
+            "type": "hardcoded_secret",
+            "pattern": "(?i)\\bWITH\\s+PASSWORD\\s+[\\'\"]([^\\'\"\\n]{6,128})[\\'\"]",
+            "severity": "high",
+            "action": "BLOCK",
+            "enabled": true,
+            "validator": null,
+            "capture_group": 1
         }
     ]
 }

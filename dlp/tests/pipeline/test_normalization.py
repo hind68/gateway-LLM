@@ -37,3 +37,10 @@ def test_arabic_digits_normalize_but_map_to_original_glyphs():
     assert "0612345678" in normalized.text
     start = normalized.text.index("0612345678")
     assert original[slice(*normalized.original_span(start, start + 10))] == "٠٦١٢٣٤٥٦٧٨"
+
+
+def test_email_normalization_does_not_consume_next_sentence():
+    text = "Email adam.carter@example.org. Send the payment."
+    match = next(m for m in run_regex_detectors(text) if m["type"] == "email")
+    assert match["value"] == "adam.carter@example.org"
+    assert text[match["end"]:] == ". Send the payment."

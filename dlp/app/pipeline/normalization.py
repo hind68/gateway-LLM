@@ -53,7 +53,8 @@ def normalize_for_scanning(text: str) -> NormalizedText:
             right = current[match.end()] if match.end() < len(current) else ""
             near_at = "@" in current[max(0, match.start() - 80):min(len(current), match.end() + 80)]
             if ((left.isalnum() and right == "@") or (left == "@" and right.isalnum())
-                    or (near_at and ((left.isalnum() and right == ".") or (left == "." and right.isalnum())))):
+                    or (near_at and ((left.isalnum() and right == ".")
+                                     or (left == "." and (right.islower() or right.isdigit()))))):
                 del output[match.start():match.end()]
                 del spans[match.start():match.end()]
                 changed = True

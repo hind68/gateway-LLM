@@ -1,30 +1,30 @@
 {
   "mode": "regex",
-  "samples": 40,
+  "samples": 46,
   "global": {
-    "tp": 26,
-    "fp": 4,
-    "fn": 7,
-    "precision": 0.8667,
-    "recall": 0.7879,
-    "f1": 0.8254
+    "tp": 32,
+    "fp": 5,
+    "fn": 5,
+    "precision": 0.8649,
+    "recall": 0.8649,
+    "f1": 0.8649
   },
   "entities": {
     "email": {
-      "tp": 4,
+      "tp": 5,
       "fp": 1,
       "fn": 0,
-      "precision": 0.8,
+      "precision": 0.8333,
       "recall": 1.0,
-      "f1": 0.8889
+      "f1": 0.9091
     },
     "phone_number": {
-      "tp": 3,
-      "fp": 1,
-      "fn": 1,
-      "precision": 0.75,
-      "recall": 0.75,
-      "f1": 0.75
+      "tp": 4,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
     },
     "moroccan_cin": {
       "tp": 2,
@@ -35,12 +35,12 @@
       "f1": 1.0
     },
     "iban": {
-      "tp": 1,
+      "tp": 2,
       "fp": 0,
-      "fn": 1,
+      "fn": 0,
       "precision": 1.0,
-      "recall": 0.5,
-      "f1": 0.6667
+      "recall": 1.0,
+      "f1": 1.0
     },
     "bank_account": {
       "tp": 1,
@@ -59,12 +59,12 @@
       "f1": 0.6667
     },
     "person_name": {
-      "tp": 1,
-      "fp": 0,
-      "fn": 3,
-      "precision": 1.0,
-      "recall": 0.25,
-      "f1": 0.4
+      "tp": 2,
+      "fp": 1,
+      "fn": 2,
+      "precision": 0.6667,
+      "recall": 0.5,
+      "f1": 0.5714
     },
     "organization": {
       "tp": 0,
@@ -84,11 +84,11 @@
     },
     "hardcoded_secret": {
       "tp": 4,
-      "fp": 0,
-      "fn": 0,
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1": 1.0
+      "fp": 1,
+      "fn": 1,
+      "precision": 0.8,
+      "recall": 0.8,
+      "f1": 0.8
     },
     "openai_api_key": {
       "tp": 2,
@@ -131,6 +131,14 @@
       "f1": 1.0
     },
     "connection_string": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "imei": {
       "tp": 0,
       "fp": 0,
       "fn": 1,
@@ -139,12 +147,12 @@
       "f1": 0.0
     },
     "api_key": {
-      "tp": 0,
+      "tp": 1,
       "fp": 1,
       "fn": 0,
-      "precision": 0.0,
-      "recall": 0.0,
-      "f1": 0.0
+      "precision": 0.5,
+      "recall": 1.0,
+      "f1": 0.6667
     }
   },
   "failures": [
@@ -179,14 +187,9 @@
       }
     },
     {
-      "id": "international-iban-no-phone-fragment",
+      "id": "customer-prose-not-name-label",
       "counts": {
-        "iban": {
-          "tp": 0,
-          "fp": 0,
-          "fn": 1
-        },
-        "phone_number": {
+        "person_name": {
           "tp": 0,
           "fp": 1,
           "fn": 0
@@ -194,29 +197,34 @@
       }
     },
     {
-      "id": "arabic-digits-phone",
+      "id": "shell-env-reference",
       "counts": {
-        "phone_number": {
+        "hardcoded_secret": {
           "tp": 0,
-          "fp": 0,
-          "fn": 1
+          "fp": 1,
+          "fn": 0
         }
       }
     },
     {
-      "id": "labeled-arabic-person",
+      "id": "imei-context",
       "counts": {
-        "person_name": {
+        "imei": {
           "tp": 0,
           "fp": 0,
           "fn": 1
+        },
+        "credit_card": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 0
         }
       }
     },
     {
-      "id": "mongodb-srv",
+      "id": "url-embedded-password",
       "counts": {
-        "connection_string": {
+        "hardcoded_secret": {
           "tp": 0,
           "fp": 0,
           "fn": 1
@@ -229,20 +237,10 @@
       }
     },
     {
-      "id": "generic-secret-negative-label",
+      "id": "secret-context-two-records",
       "counts": {
         "api_key": {
-          "tp": 0,
-          "fp": 1,
-          "fn": 0
-        }
-      }
-    },
-    {
-      "id": "transaction-card-fragment",
-      "counts": {
-        "credit_card": {
-          "tp": 0,
+          "tp": 1,
           "fp": 1,
           "fn": 0
         }

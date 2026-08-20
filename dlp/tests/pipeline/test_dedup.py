@@ -64,3 +64,14 @@ def test_dedup_prefers_specific_passport_and_key_types():
     ]
     result = deduplicate_matches(matches)
     assert [match["type"] for match in result] == ["passport_number", "openai_api_key"]
+
+
+def test_contextual_imei_and_url_password_override_generic_overlap():
+    matches = [
+        {"type": "credit_card", "start": 6, "end": 21, "score": 0.95, "validated": True, "pattern_name": "credit_card"},
+        {"type": "imei", "start": 6, "end": 21, "score": 0.72, "pattern_name": "imei_contextual"},
+        {"type": "email", "start": 40, "end": 80, "score": 0.72, "pattern_name": "email"},
+        {"type": "hardcoded_secret", "start": 40, "end": 57, "score": 0.72, "pattern_name": "url_embedded_password"},
+    ]
+    result = deduplicate_matches(matches)
+    assert [match["type"] for match in result] == ["imei", "hardcoded_secret"]

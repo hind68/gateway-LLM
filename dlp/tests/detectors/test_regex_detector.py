@@ -427,6 +427,51 @@ def test_mongodb_srv_is_one_connection_string_not_an_email():
     assert not any(m["type"] == "email" for m in matches)
 
 
+def test_customer_in_prose_is_not_a_person_label():
+    text = "The customer lives in Casablanca and works in Rabat."
+    assert not any(m["type"] == "person_name" for m in run_regex_detectors(text))
+    assert any(m["type"] == "person_name" and m["value"] == "Yassine El Mansouri"
+               for m in run_regex_detectors("Customer: Yassine El Mansouri"))
+
+
+def test_shell_variable_reference_is_not_hardcoded():
+    assert run_regex_detectors("TOKEN=$ACCESS_TOKEN") == []
+
+
+def test_secret_context_does_not_leak_from_previous_record():
+    text = (
+        "[PAIR_SECRET_POSITIVE] api_key=Zx9Qm2Lp7Vw4Nk8Rt3Ys6Hd1Jf5Bc0Aa\n"
+        "[PAIR_SECRET_NEGATIVE] correlation_id=Zx9Qm2Lp7Vw4Nk8Rt3Ys6Hd1Jf5Bc0Aa"
+    )
+    matches = run_regex_detectors(text)
+    assert len([m for m in matches if m["type"] == "api_key"]) == 1
+
+
+def test_spaced_iban_line_never_emits_phone_fragment():
+    text = "[IBAN_SPACED] M A 6 4 0 1 1 5 1 9 0 0 0 0 0 1 2 0 5 0 0 0 5 3 4 9 2"
+    assert not any(m["type"] == "phone_number" for m in run_regex_detectors(text))
+
+
+def test_imei_beats_credit_card_classification():
+    text = "IMEI: 490154203237518"
+    matches = run_regex_detectors(text)
+    assert any(m["type"] == "imei" and m["value"] == "490154203237518" for m in matches)
+
+
+def test_remaining_structured_secret_formats():
+    cases = [
+        ("sk_" + "test_51SyntheticTestKey000000000000", "api_key"),
+        ("SG." + "abcdefghijklmnopqrstuv." + "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdef", "api_key"),
+        ("AccountKey=U3ludGhldGljQWNjb3VudEtleUZvckRMUFRlc3RpbmdPbmx5PT0=", "hardcoded_secret"),
+        ("pre_shared_key=SyntheticVpnPsk123!", "hardcoded_secret"),
+        ('curl -u "api-user:SyntheticCurlPassword" https://api.example.invalid', "hardcoded_secret"),
+        ("CREATE USER gateway_admin WITH PASSWORD 'SyntheticSqlPassword!';", "hardcoded_secret"),
+        ("https://synthetic-user:SyntheticGitToken@example.invalid/repo.git", "hardcoded_secret"),
+    ]
+    for text, expected_type in cases:
+        assert any(m["type"] == expected_type for m in run_regex_detectors(text)), text
+
+
 def test_detects_env_style_secret():
     text = 'DB_PASSWORD=hunter2345'
     matches = [m for m in run_regex_detectors(text) if m["type"] == "hardcoded_secret"]
