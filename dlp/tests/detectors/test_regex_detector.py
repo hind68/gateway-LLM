@@ -75,10 +75,29 @@ def test_detects_openai_project_key_with_distinct_type():
     matches = run_regex_detectors(text)
     assert any(m["type"] == "openai_api_key" for m in matches)
 
+def test_detects_openai_key_with_url_safe_characters():
+    value = "sk-proj-abcd_EFGH-ijkl_MNOP-qrst_1234567890"
+    matches = detect_api_keys(f"OPENAI_API_KEY={value}")
+    assert any(m["type"] == "openai_api_key" and m["value"] == value for m in matches)
+
 def test_detects_aws_style_key():
     text = "Access key: AKIAIOSFODNN7EXAMPLE"
     matches = detect_api_keys(text)
     assert any(m["value"] == "AKIAIOSFODNN7EXAMPLE" for m in matches)
+
+def test_detects_temporary_aws_style_key():
+    value = "ASIAIOSFODNN7EXAMPLE"
+    assert any(m["value"] == value for m in detect_api_keys(f"AWS_ACCESS_KEY_ID={value}"))
+
+def test_detects_fine_grained_github_token():
+    value = "github_pat_11AAAAAA0_example_token_value_123456"
+    matches = detect_api_keys(f"GITHUB_TOKEN={value}")
+    assert any(m["type"] == "github_token" and m["value"] == value for m in matches)
+
+def test_detects_padded_bearer_token_to_the_end():
+    value = "abcdefghijklmnopqrstuvwxyz123456=="
+    matches = detect_api_keys(f"Authorization: Bearer {value}")
+    assert any(m["type"] == "bearer_token" and value in m["value"] for m in matches)
 
 def test_detects_two_keys_in_one_text():
     text = "Keys: sk-test1234567890abcdefghijklmnop and AKIAIOSFODNN7EXAMPLE"
@@ -114,6 +133,32 @@ def test_generic_pattern_still_detects_mixed_case_secret():
     text = "token: aB3dEfGhIjKlMnOpQrStUvWxYz012345"
     matches = detect_api_keys(text)
     assert any(m["value"] == "aB3dEfGhIjKlMnOpQrStUvWxYz012345" for m in matches)
+
+def test_context_restores_hash_shaped_secret():
+    value = "5d41402abc4b2a76b9719d911017c592"
+    assert any(m["value"] == value for m in detect_api_keys(f"access_token: {value}"))
+
+def test_generic_secret_ignores_environment_references():
+    assert run_regex_detectors('password=os.getenv("PASSWORD")') == []
+    assert run_regex_detectors("token=process.env.ACCESS_TOKEN") == []
+
+def test_json_secret_masks_only_literal_value():
+    text = '{"password": "abc123XYZ"}'
+    match = next(m for m in run_regex_detectors(text) if m["type"] == "hardcoded_secret")
+    assert match["value"] == "abc123XYZ"
+
+def test_ip_classification_and_contextual_severity():
+    cases = [
+        ("test 127.0.0.1", "loopback", "low"),
+        ("cache 10.1.2.3", "private", "low"),
+        ("public 8.8.8.8", "public", "medium"),
+        ("production db 10.1.2.3", "private", "medium"),
+        ("production server 8.8.8.8", "public", "high"),
+    ]
+    for text, category, severity in cases:
+        match = next(m for m in run_regex_detectors(text) if m["type"] == "ip_address")
+        assert (match["ip_category"], match["severity"]) == (category, severity)
+        assert "action" not in match
 
 
 # --- New patterns inspired by cin_morocco.json / rib_schema.json ---
@@ -189,6 +234,11 @@ def test_detects_date_of_birth_as_low_severity():
     assert any(m["value"] == "28.05.2003" for m in matches)
     assert all(m["severity"] == "low" for m in matches)
 
+def test_detects_hyphenated_date_of_birth():
+    text = "Date de naissance: 28-05-2003"
+    matches = [m for m in run_regex_detectors(text) if m["type"] == "date_of_birth"]
+    assert any(m["value"] == "28-05-2003" for m in matches)
+
 def test_detects_full_rib():
     text = "Voici le RIB complet: 230 810 5695021211005700 59 merci."
     matches = [m for m in run_regex_detectors(text) if m["type"] == "bank_account"]
@@ -218,6 +268,11 @@ def test_detects_valid_morocco_iban():
     matches = [m for m in run_regex_detectors(text) if m["type"] == "iban"]
     assert any(m["value"] == "MA64 2307 8094 3410 6211 0034 0090" for m in matches)
 
+def test_detects_lowercase_hyphenated_morocco_iban():
+    value = "ma64-2307-8094-3410-6211-0034-0090"
+    matches = [m for m in run_regex_detectors(f"IBAN: {value}") if m["type"] == "iban"]
+    assert any(m["value"] == value for m in matches)
+
 def test_rejects_invalid_checksum_iban_lookalike():
     # Shape-valid (MA + 2 digits + 24 more), but fails the MOD-97 check -
     # the iban_checksum validator should filter this out.
@@ -229,6 +284,22 @@ def test_detects_morocco_bic_swift():
     text = "Code BIC/SWIFT: CIHMMAMC pour votre agence."
     matches = [m for m in run_regex_detectors(text) if m["type"] == "bic_swift"]
     assert any(m["value"] == "CIHMMAMC" for m in matches)
+
+def test_detects_lowercase_morocco_bic_swift():
+    text = "Code BIC/SWIFT: cihmmamc"
+    matches = [m for m in run_regex_detectors(text) if m["type"] == "bic_swift"]
+    assert any(m["value"] == "cihmmamc" for m in matches)
+
+def test_email_does_not_consume_sentence_punctuation():
+    text = "Contact client@example.com. Merci."
+    matches = detect_emails(text)
+    assert len(matches) == 1
+    assert matches[0]["value"] == "client@example.com"
+
+def test_detects_international_phone_with_optional_trunk_prefix():
+    value = "+212 (0) 6 12 34 56 78"
+    matches = detect_phones(f"Téléphone: {value}")
+    assert any(m["value"] == value for m in matches)
 
 def test_non_morocco_bic_is_not_matched():
     # bic_swift_morocco is deliberately scoped to Moroccan BICs (country

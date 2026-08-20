@@ -79,6 +79,17 @@ Configured through environment variables:
 | `DLP_MAX_ZIP_FILES` | `50` |
 | `DLP_MAX_ZIP_DEPTH` | `3` |
 | `DLP_LOG_LEVEL` | `INFO` |
+| `DLP_CONTEXT_WINDOW` | `80` |
+| `DLP_MIN_PERSON_CONFIDENCE` | `0.72` |
+| `DLP_MIN_SECRET_LENGTH` | `20` |
+| `DLP_MIN_SECRET_ENTROPY` | `3.3` |
+| `DLP_TRANSFORMER_ENABLED` | `false` |
+| `DLP_TRANSFORMER_MODEL` | empty |
+| `DLP_TRANSFORMER_MIN_CONFIDENCE` | `0.75` |
+
+LOCATION/ADDRESS NER is intentionally disabled by current product policy. IP
+findings are classified as loopback, private, or public and receive contextual
+severity; the configured policy still decides the final action.
 
 ## Local Run
 
@@ -114,6 +125,20 @@ Service URLs:
 ```bash
 python -m pytest
 ```
+
+## Accuracy evaluation
+
+The labeled corpus includes French, English, Arabic, and Darija-style positive,
+negative, and adversarial samples. From the `dlp` directory:
+
+```bash
+python evaluation/evaluate.py --mode regex
+python evaluation/evaluate.py --mode full --json-output evaluation/report.json
+```
+
+`regex` mode has no NLP model requirement. `full` mode includes Presidio. The
+optional transformer adapter requires `transformers` only when explicitly
+enabled; it is lazy-loaded and is not imported or downloaded in disabled mode.
 
 ## Current Limits
 

@@ -2,18 +2,10 @@ def spans_overlap(a: dict, b: dict) -> bool:
     return a["start"] < b["end"] and b["start"] < a["end"]
 
 
-_SEVERITY_RANK = {
-    "low": 1,
-    "medium": 2,
-    "high": 3,
-}
-
-
-def _quality_key(match: dict) -> tuple[int, int, int, float, int]:
+def _quality_key(match: dict) -> tuple[int, int, float, int]:
     length = match["end"] - match["start"]
     specialized = 1 if match.get("pattern_name") or match.get("validated") else 0
     return (
-        _SEVERITY_RANK.get(match.get("severity"), 0),
         specialized,
         1 if match.get("validated") else 0,
         float(match.get("score") or 0),

@@ -15,6 +15,7 @@ from app.schemas import AnalyseRequest, AnalyseResponse, MultiSourceAnalyseRespo
 from app.detectors.language import detect_language
 from app.detectors.regex_detector import run_regex_detectors, replace_patterns, _PATTERNS_FILE
 from app.detectors.presidio_detector import detect_with_presidio, warm_up_models
+from app.detectors.transformer_detector import detect_with_transformer
 from app.pipeline.dedup import deduplicate_matches
 from app.pipeline.ids import assign_ids
 from app.pipeline.masking import is_neutralized_placeholder_value, mask_text
@@ -178,6 +179,7 @@ def run_pipeline(
     combined = (
         run_regex_detectors(text)
         + detect_with_presidio(text, language=lang)
+        + detect_with_transformer(text)
         + detect_banned_words(text, banned_words or [])
     )
     combined = _drop_neutralized_matches(text, combined)
@@ -229,6 +231,7 @@ def run_pipeline_for_segments(known_text: str, free_text: str, user_id: str | No
         free_text,
         run_regex_detectors(free_text)
         + detect_with_presidio(free_text, language=lang)
+        + detect_with_transformer(free_text)
         + detect_banned_words(free_text, banned_words or []),
     )
     offset = len(known_text) + 1  # +1 for the "\n" joiner above

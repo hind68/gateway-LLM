@@ -1,11 +1,17 @@
 import json
 import re
 import threading
+import math
+import ipaddress
+from collections import Counter
 from pathlib import Path
 
 from app.detectors.luhn import is_luhn_valid
 from app.detectors.iban import is_iban_valid
 from app.pipeline.masking import is_neutralized_placeholder_value
+from app.pipeline.normalization import normalize_for_scanning
+from app.pipeline.evidence import DetectionEvidence
+from app.config import DLP_CONTEXT_WINDOW, DLP_MIN_SECRET_ENTROPY, DLP_MIN_SECRET_LENGTH
 
 # Patterns live in patterns.json rather than as hardcoded constants here,
 # so adding a new one is a data change, not a code change - see
@@ -25,16 +31,47 @@ _VALID_ACTIONS = {"ALLOW", "MASK", "BLOCK"}
 # actual logic stays here. Same idea as Luhn on credit cards, just made
 # pluggable for any future pattern that needs more than "the regex
 # matched" (see iban_morocco's MOD-97 check for another example).
+def _shannon_entropy(value: str) -> float:
+    if not value:
+        return 0.0
+    counts = Counter(value)
+    return -sum((count / len(value)) * math.log2(count / len(value)) for count in counts.values())
+
+
+def _generic_secret_shape(value: str) -> bool:
+    return (
+        len(value) >= DLP_MIN_SECRET_LENGTH
+        and not value.startswith("eyJ")
+        and any(char.isalpha() for char in value)
+        and any(char.isdigit() for char in value)
+        and _shannon_entropy(value) >= DLP_MIN_SECRET_ENTROPY
+    )
+
+
 _VALIDATORS = {
     "luhn": is_luhn_valid,
     "iban_checksum": is_iban_valid,
     "mixed_case": lambda v: any(c.isupper() for c in v) and any(c.islower() for c in v),
-    "generic_secret": lambda v: (
-        any(c.isupper() for c in v)
-        and any(c.islower() for c in v)
-        and not v.startswith("eyJ")
-    ),
+    "generic_secret": _generic_secret_shape,
 }
+
+_SECRET_CONTEXT = re.compile(r"(?i)\b(?:token|api[_-]?key|apikey|password|passwd|pwd|secret|client_secret|access_token|refresh_token|private_key|credential)\b")
+_ENV_REFERENCE = re.compile(r"(?i)(?:os\.getenv\s*\(|os\.environ\s*\[|process\.env\.|\$\{)[^\n]{0,100}$")
+_UUID_OR_HASH = re.compile(r"(?i)^(?:[0-9a-f]{32,64}|[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})$")
+_SENSITIVE_INFRA_CONTEXT = re.compile(r"(?i)\b(?:production|prod|database|db|vpn|ssh|server|internal|credential)s?\b")
+
+
+def _classify_ip(value: str, window: str) -> tuple[str, str]:
+    address = ipaddress.ip_address(value)
+    if address.is_loopback:
+        category, severity = "loopback", "low"
+    elif address.is_private:
+        category, severity = "private", "low"
+    else:
+        category, severity = "public", "medium"
+    if _SENSITIVE_INFRA_CONTEXT.search(window):
+        severity = "medium" if severity == "low" else "high"
+    return category, severity
 
 _TYPE_ALIASES = {
     "phone": "phone_number",
@@ -146,16 +183,39 @@ def _run_rules(rules: list[dict], text: str) -> list[dict]:
                 continue
             if rule["validator"] and not rule["validator"](value):
                 continue
+            window = text[max(0, start - DLP_CONTEXT_WINDOW):min(len(text), end + DLP_CONTEXT_WINDOW)]
+            context_signals = ["secret_keyword"] if _SECRET_CONTEXT.search(window) else []
+            if rule["validator_name"] == "generic_secret":
+                prefix = text[max(0, start - DLP_CONTEXT_WINDOW):start]
+                if _ENV_REFERENCE.search(prefix):
+                    continue
+                # UUIDs and hashes need explicit sensitive context; ordinary identifiers do not.
+                if _UUID_OR_HASH.fullmatch(value) and not context_signals:
+                    continue
+            evidence = DetectionEvidence(
+                entity_type=rule["type"], start=start, end=end, source="regex",
+                raw_score=0.78 if rule["validator"] else 0.72,
+                pattern_name=rule["name"], validator_passed=bool(rule["validator"]),
+                context_signals=context_signals,
+            )
             matches.append({
                 "type": rule["type"], "value": value,
                 "start": start, "end": end,
                 "severity": rule["severity"], "source": "regex",
-                "score": 0.95 if rule["validator"] else 0.8,
+                "score": evidence.confidence(),
                 "validated": bool(rule["validator"]),
                 "pattern_name": rule["name"],
             })
+            if rule["type"] == "ip_address":
+                category, contextual_severity = _classify_ip(value, window)
+                matches[-1]["ip_category"] = category
+                matches[-1]["severity"] = contextual_severity
+                # Do not inherit the old blanket BLOCK action; the normal
+                # configurable severity policy decides the final action.
+                matches[-1].pop("action", None)
             if rule["action"]:
-                matches[-1]["action"] = rule["action"]
+                if rule["type"] != "ip_address":
+                    matches[-1]["action"] = rule["action"]
     return matches
 
 
@@ -176,7 +236,16 @@ def detect_api_keys(text: str) -> list[dict]:
 
 
 def run_regex_detectors(text: str) -> list[dict]:
-    return _run_rules(_rules, text)
+    normalized = normalize_for_scanning(text)
+    matches = _run_rules(_rules, normalized.text)
+    for match in matches:
+        normalized_start, normalized_end = match["start"], match["end"]
+        original_start, original_end = normalized.original_span(normalized_start, normalized_end)
+        match["normalized_start"] = normalized_start
+        match["normalized_end"] = normalized_end
+        match["start"], match["end"] = original_start, original_end
+        match["value"] = text[original_start:original_end]
+    return matches
 
 
 def add_pattern(

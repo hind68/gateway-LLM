@@ -38,7 +38,7 @@ def test_presidio_mapping_without_sensitive_value(monkeypatch):
     monkeypatch.setattr(detector, "get_analyzer", lambda: FakeAnalyzer())
     matches = detector.detect_with_presidio("Sarah aaa client@example.com", language="en")
     by_type = {match["type"]: match for match in matches}
-    assert "person_name" not in by_type
+    assert by_type["person_name"]["severity"] == "medium"
     assert by_type["email"]["severity"] == "medium"
     assert all("value" not in match for match in matches)
 
@@ -76,12 +76,25 @@ def test_generic_nlp_false_positives_are_filtered(monkeypatch):
         assert detector.detect_with_presidio(text, language="fr") == []
 
 
-def test_person_name_detection_is_disabled(monkeypatch):
+def test_person_name_detection_is_enabled(monkeypatch):
     monkeypatch.setattr(detector, "get_analyzer", lambda: FakeGenericFalsePositiveAnalyzer("PERSON", "Jean Dupont"))
 
     matches = detector.detect_with_presidio("Contactez Jean Dupont a client@example.com", language="fr")
 
-    assert not any(match["type"] == "person_name" for match in matches)
+    assert any(match["type"] == "person_name" for match in matches)
+
+
+def test_low_confidence_person_is_filtered(monkeypatch):
+    monkeypatch.setattr(detector, "get_analyzer", lambda: type("Analyzer", (), {
+        "analyze": lambda self, text, language: [FakeResult("PERSON", 0, 11, 0.4)]
+    })())
+    assert detector.detect_with_presidio("Jean Dupont", language="fr") == []
+
+
+def test_distant_code_does_not_suppress_person(monkeypatch):
+    text = "Jean Dupont est le client." + (" phrase" * 30) + " curl https://api.test"
+    monkeypatch.setattr(detector, "get_analyzer", lambda: FakeGenericFalsePositiveAnalyzer("PERSON", "Jean Dupont"))
+    assert any(match["type"] == "person_name" for match in detector.detect_with_presidio(text, language="fr"))
 
 
 def test_generic_nlp_entities_are_filtered_in_technical_content(monkeypatch):
@@ -89,6 +102,19 @@ def test_generic_nlp_entities_are_filtered_in_technical_content(monkeypatch):
     monkeypatch.setattr(detector, "get_analyzer", lambda: FakeGenericFalsePositiveAnalyzer("LOCATION", "application"))
 
     assert detector.detect_with_presidio(text, language="fr") == []
+
+
+def test_location_detection_is_disabled(monkeypatch):
+    text = "le client habite a Casablanca"
+    monkeypatch.setattr(
+        detector,
+        "get_analyzer",
+        lambda: FakeGenericFalsePositiveAnalyzer("LOCATION", "Casablanca"),
+    )
+
+    matches = detector.detect_with_presidio(text, language="fr")
+
+    assert matches == []
 
 
 def test_moroccan_cin_recognizer_returns_only_number_span():

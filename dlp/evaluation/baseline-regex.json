@@ -1,0 +1,213 @@
+{
+  "mode": "regex",
+  "samples": 33,
+  "global": {
+    "tp": 17,
+    "fp": 1,
+    "fn": 8,
+    "precision": 0.9444,
+    "recall": 0.68,
+    "f1": 0.7907
+  },
+  "entities": {
+    "email": {
+      "tp": 2,
+      "fp": 0,
+      "fn": 2,
+      "precision": 1.0,
+      "recall": 0.5,
+      "f1": 0.6667
+    },
+    "phone_number": {
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "moroccan_cin": {
+      "tp": 2,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "iban": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "bank_account": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "credit_card": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "person_name": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 2,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "organization": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "ip_address": {
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "hardcoded_secret": {
+      "tp": 2,
+      "fp": 1,
+      "fn": 1,
+      "precision": 0.6667,
+      "recall": 0.6667,
+      "f1": 0.6667
+    },
+    "openai_api_key": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "github_token": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "jwt_token": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "alphanumeric_identifier": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    }
+  },
+  "failures": [
+    {
+      "id": "en-email-spaced",
+      "counts": {
+        "email": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1
+        }
+      }
+    },
+    {
+      "id": "fr-person",
+      "counts": {
+        "person_name": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1
+        }
+      }
+    },
+    {
+      "id": "en-person-code",
+      "counts": {
+        "person_name": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1
+        }
+      }
+    },
+    {
+      "id": "fr-org",
+      "counts": {
+        "organization": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1
+        }
+      }
+    },
+    {
+      "id": "json-password",
+      "counts": {
+        "hardcoded_secret": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1
+        }
+      }
+    },
+    {
+      "id": "openai",
+      "counts": {
+        "openai_api_key": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1
+        },
+        "hardcoded_secret": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 0
+        }
+      }
+    },
+    {
+      "id": "github",
+      "counts": {
+        "github_token": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1
+        }
+      }
+    },
+    {
+      "id": "zero-width-email",
+      "counts": {
+        "email": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1
+        }
+      }
+    }
+  ]
+}
