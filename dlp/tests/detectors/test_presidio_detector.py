@@ -108,6 +108,20 @@ def test_field_labels_and_document_headings_are_not_nlp_values(monkeypatch):
         assert detector.detect_with_presidio(text, language="fr") == []
 
 
+def test_document_terminology_is_not_a_person(monkeypatch):
+    examples = [
+        ("Donne-moi le numero de carte.", "numero de carte", "fr"),
+        ("Le champ est numéro de carte.", "numéro de carte", "fr"),
+        ("Carte nationale: AB123456", "Carte nationale", "fr"),
+        ("Carte d'identité: AB123456", "Carte d'identité", "fr"),
+        ("National ID: AB123456", "National ID", "en"),
+        ("Identity card number", "Identity card", "en"),
+    ]
+    for text, value, language in examples:
+        monkeypatch.setattr(detector, "get_analyzer", lambda value=value: FakeGenericFalsePositiveAnalyzer("PERSON", value))
+        assert detector.detect_with_presidio(text, language=language) == []
+
+
 def test_code_on_following_line_does_not_suppress_person(monkeypatch):
     text = "Please contact Yassine El Mansouri regarding the incident.\ncurl https://api.test"
     monkeypatch.setattr(detector, "get_analyzer", lambda: FakeGenericFalsePositiveAnalyzer("PERSON", "Yassine El Mansouri"))

@@ -150,7 +150,7 @@ def test_json_secret_masks_only_literal_value():
 
 def test_ip_classification_and_contextual_severity():
     cases = [
-        ("test 127.0.0.1", "loopback", "low"),
+        ("development server 127.0.0.1", "loopback", "low"),
         ("cache 10.1.2.3", "private", "low"),
         ("public 8.8.8.8", "public", "medium"),
         ("production db 10.1.2.3", "private", "medium"),

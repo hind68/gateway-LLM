@@ -68,6 +68,7 @@ _SECRET_CONTEXT = re.compile(r"(?i)\b(?:token|api[_-]?key|apikey|password|passwd
 _ENV_REFERENCE = re.compile(r"(?i)(?:os\.getenv\s*\(|os\.environ\s*\[|system\.getenv\s*\(|process\.env\.|\$\{|\$[A-Z_][A-Z0-9_]*)[^\n]{0,100}$")
 _UUID_OR_HASH = re.compile(r"(?i)^(?:[0-9a-f]{32,64}|[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})$")
 _SENSITIVE_INFRA_CONTEXT = re.compile(r"(?i)\b(?:production|prod|database|db|vpn|ssh|server|internal|credential)s?\b")
+_DEVELOPMENT_CONTEXT = re.compile(r"(?i)\b(?:development|dev|local|localhost|test|testing)\b")
 _NEGATIVE_SECRET_CONTEXT = re.compile(r"(?i)\b(?:not|isn['’]?t|pas|n['’]est\s+pas)\s+(?:a\s+|un[e]?\s+)?secret\b")
 _PLACEHOLDER_SECRET = re.compile(r"(?i)^(?:change(?:me|it)|replace[_-]?me|your[_-].*|example|dummy|<[^>]+>|\$\{[^}]+\})$")
 _SHELL_REFERENCE = re.compile(r"(?i)^\$(?:\{[A-Z_][A-Z0-9_]*\}|[A-Z_][A-Z0-9_]*)$")
@@ -102,7 +103,9 @@ def _classify_ip(value: str, window: str) -> tuple[str, str]:
         category, severity = "private", "low"
     else:
         category, severity = "public", "medium"
-    if _SENSITIVE_INFRA_CONTEXT.search(window):
+    if _SENSITIVE_INFRA_CONTEXT.search(window) and not (
+        category == "loopback" and _DEVELOPMENT_CONTEXT.search(window)
+    ):
         severity = "medium" if severity == "low" else "high"
     return category, severity
 

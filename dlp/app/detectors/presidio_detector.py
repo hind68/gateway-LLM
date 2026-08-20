@@ -95,6 +95,15 @@ _NLP_EXCLUDED_TERMS = {
     "informations bancaires",
     "carte bancaire de test",
     "identifiants et secrets fictifs",
+    "numero de carte",
+    "carte nationale",
+    "carte d identite",
+    "numero de carte d identite",
+    "national id",
+    "national identity card",
+    "identity card",
+    "passport number",
+    "document number",
 }
 
 _TECHNICAL_CONTEXT_PATTERNS = (

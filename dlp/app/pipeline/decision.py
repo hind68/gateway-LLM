@@ -4,9 +4,9 @@ SEVERITY_ORDER = {"low": 1, "medium": 2, "high": 3}
 def evaluate_decision(matches: list[dict], analysis_error: bool = False) -> str:
     if analysis_error:
         return "BLOCK"
-    # Product policy is severity-driven: low findings are masked automatically,
-    # while medium and high findings require the original request to stop.
-    if any(SEVERITY_ORDER.get(str(match.get("severity", "")).lower(), 3) >= SEVERITY_ORDER["medium"] for match in matches):
+    # Confidence determines whether a finding exists; severity determines this
+    # policy outcome. Only high-severity findings block the request.
+    if any(SEVERITY_ORDER.get(str(match.get("severity", "")).lower(), 3) >= SEVERITY_ORDER["high"] for match in matches):
         return "BLOCK"
     if matches:
         return "MASK"

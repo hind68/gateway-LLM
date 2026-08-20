@@ -1,9 +1,9 @@
 """
 Central severity policy for internal DLP types.
 
-Note on IP addresses: the original product policy mentioned medium/MASK for IPs,
-but the current running configuration treats ip_address as high/BLOCK. This file
-documents and centralizes that current behavior without changing it implicitly.
+IP regex detections receive context-aware severity at detection time. The static
+entry below remains a safe fallback for detectors that cannot classify the IP;
+the central decision policy still determines MASK versus BLOCK.
 """
 
 TYPE_SEVERITY = {

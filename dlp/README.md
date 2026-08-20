@@ -91,6 +91,10 @@ LOCATION/ADDRESS NER is intentionally disabled by current product policy. IP
 findings are classified as loopback, private, or public and receive contextual
 severity; the configured policy still decides the final action.
 
+By default loopback and plain private IP findings are low severity, public IPs
+are medium, and sensitive infrastructure context can raise either category.
+Therefore ordinary IP findings are masked while high-context findings block.
+
 ## Local Run
 
 Install dependencies and spaCy models:

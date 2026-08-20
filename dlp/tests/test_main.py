@@ -305,12 +305,32 @@ def test_two_openai_keys_get_coherent_indices(monkeypatch):
     assert "sk-proj-" not in data["masked_text"]
 
 
-def test_ip_policy_currently_blocks_and_is_documented(monkeypatch):
+def test_plain_private_ip_uses_context_aware_low_severity(monkeypatch):
     _disable_presidio(monkeypatch)
     data = client.post("/analyse", json={"text": "Adresse IP 192.168.1.24"}).json()
 
-    assert data["decision"] == "BLOCK"
-    assert any(match["type"] == "ip_address" and match["severity"] == "high" for match in data["matches"])
+    assert data["decision"] == "MASK"
+    assert any(match["type"] == "ip_address" and match["severity"] == "low" for match in data["matches"])
+
+
+@pytest.mark.parametrize(
+    ("text", "category", "severity", "decision"),
+    [
+        ("Development server 127.0.0.1", "loopback", "low", "MASK"),
+        ("Adresse IP 192.168.1.24", "private", "low", "MASK"),
+        ("Production database credential host 10.20.30.40", "private", "medium", "MASK"),
+        ("Public endpoint 8.8.8.8", "public", "medium", "MASK"),
+        ("Production SSH VPN server 8.8.8.8", "public", "high", "BLOCK"),
+    ],
+)
+def test_context_aware_ip_policy(monkeypatch, text, category, severity, decision):
+    _disable_presidio(monkeypatch)
+    data = client.post("/analyse", json={"text": text}).json()
+    match = next(match for match in data["matches"] if match["type"] == "ip_address")
+    # Category remains internal detector evidence; the public Match schema
+    # intentionally exposes severity and the policy outcome only.
+    assert match["severity"] == severity
+    assert data["decision"] == decision
 
 
 def test_contact_sentence_detects_person_and_email():
@@ -318,7 +338,7 @@ def test_contact_sentence_detects_person_and_email():
     types = {match["type"] for match in data["matches"]}
 
     assert data["decision"] == "MASK"
-    assert "person_name" not in types
+    assert "person_name" in types
     assert "email" in types
 
 
@@ -376,9 +396,9 @@ def test_utf8_text_round_trips_without_mojibake(monkeypatch):
         ("Ma carte bancaire est 4111 1111 1111 1111", "credit_card", "BLOCK"),
         ("My card is 4111 1111 1111 1111", "credit_card", "BLOCK"),
         ("رقم البطاقة البنكية هو 4111 1111 1111 1111", "credit_card", "BLOCK"),
-        ("Adresse IP 192.168.1.24", "ip_address", "BLOCK"),
-        ("IP address 192.168.1.24", "ip_address", "BLOCK"),
-        ("عنوان IP هو 192.168.1.24", "ip_address", "BLOCK"),
+        ("Adresse IP 192.168.1.24", "ip_address", "MASK"),
+        ("IP address 192.168.1.24", "ip_address", "MASK"),
+        ("عنوان IP هو 192.168.1.24", "ip_address", "MASK"),
         ("Ma clé API est sk-abcdefghijklmnopqrstuvwxyz123456", "openai_api_key", "BLOCK"),
         ("My API key is sk-abcdefghijklmnopqrstuvwxyz123456", "openai_api_key", "BLOCK"),
         ("مفتاح API هو sk-abcdefghijklmnopqrstuvwxyz123456", "openai_api_key", "BLOCK"),

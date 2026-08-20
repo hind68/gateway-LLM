@@ -47,6 +47,8 @@ jobs:
         working-directory: dlp
     steps:
       - uses: actions/checkout@v4
+      - name: Install OCR runtime
+        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-eng
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -54,6 +56,10 @@ jobs:
           cache-dependency-path: dlp/requirements.txt
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -r requirements.txt
+      - name: Install declared Presidio language models
+        run: |
+          python -m spacy download en_core_web_sm
+          python -m spacy download fr_core_news_sm
       - run: python -m pytest -q
 
   compose:
@@ -65,4 +71,9 @@ jobs:
           POSTGRES_PASSWORD: ci-only-postgres-password
           DLP_ADMIN_KEY: ci-only-dlp-admin-key
           LITELLM_MASTER_KEY: ci-only-litellm-master-key
+          KEYCLOAK_DB_PASSWORD: ci-only-keycloak-db-password
+          KEYCLOAK_ADMIN_USERNAME: ci-admin
+          KEYCLOAK_ADMIN_PASSWORD: ci-only-keycloak-admin-password
+          KEYCLOAK_DEMO_PASSWORD: ci-only-demo-password
+          GATEWAY_ADMIN_CLIENT_SECRET: ci-only-gateway-admin-client-secret
         run: docker compose config
