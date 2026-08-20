@@ -309,6 +309,22 @@ def test_non_morocco_bic_is_not_matched():
     assert matches == []
 
 
+def test_french_identity_fields_from_sample_document():
+    text = "Nom : Yassine El Mansouri\nPasseport : MA8473921"
+    matches = run_regex_detectors(text)
+    assert any(m["type"] == "person_name" and m["value"] == "Yassine El Mansouri" for m in matches)
+    assert any(m["type"] == "passport_number" and m["value"] == "MA8473921" for m in matches)
+    assert not any("Passeport" in m["value"] for m in matches if m["type"] == "person_name")
+
+
+def test_french_secret_labels_detect_only_values():
+    text = "Mot de passe : AtlasTest!2026\nClé API : sk_test_51AtlasExample9xK72pQ4"
+    matches = run_regex_detectors(text)
+    assert any(m["type"] == "hardcoded_secret" and m["value"] == "AtlasTest!2026" for m in matches)
+    assert any(m["type"] == "openai_api_key" and m["value"] == "sk_test_51AtlasExample9xK72pQ4" for m in matches)
+    assert all("Mot de passe" not in m["value"] and "Clé API" not in m["value"] for m in matches)
+
+
 def test_detects_env_style_secret():
     text = 'DB_PASSWORD=hunter2345'
     matches = [m for m in run_regex_detectors(text) if m["type"] == "hardcoded_secret"]

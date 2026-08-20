@@ -1,22 +1,22 @@
 {
   "mode": "regex",
-  "samples": 33,
+  "samples": 34,
   "global": {
-    "tp": 17,
+    "tp": 22,
     "fp": 1,
-    "fn": 8,
-    "precision": 0.9444,
-    "recall": 0.68,
-    "f1": 0.7907
+    "fn": 7,
+    "precision": 0.9565,
+    "recall": 0.7586,
+    "f1": 0.8462
   },
   "entities": {
     "email": {
-      "tp": 2,
+      "tp": 4,
       "fp": 0,
-      "fn": 2,
+      "fn": 0,
       "precision": 1.0,
-      "recall": 0.5,
-      "f1": 0.6667
+      "recall": 1.0,
+      "f1": 1.0
     },
     "phone_number": {
       "tp": 3,
@@ -61,7 +61,7 @@
     "person_name": {
       "tp": 0,
       "fp": 0,
-      "fn": 2,
+      "fn": 3,
       "precision": 0.0,
       "recall": 0.0,
       "f1": 0.0
@@ -83,28 +83,28 @@
       "f1": 1.0
     },
     "hardcoded_secret": {
-      "tp": 2,
-      "fp": 1,
+      "tp": 3,
+      "fp": 0,
       "fn": 1,
-      "precision": 0.6667,
-      "recall": 0.6667,
-      "f1": 0.6667
+      "precision": 1.0,
+      "recall": 0.75,
+      "f1": 0.8571
     },
     "openai_api_key": {
-      "tp": 0,
+      "tp": 1,
       "fp": 0,
       "fn": 1,
-      "precision": 0.0,
-      "recall": 0.0,
-      "f1": 0.0
+      "precision": 1.0,
+      "recall": 0.5,
+      "f1": 0.6667
     },
     "github_token": {
-      "tp": 0,
+      "tp": 1,
       "fp": 0,
-      "fn": 1,
-      "precision": 0.0,
-      "recall": 0.0,
-      "f1": 0.0
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
     },
     "jwt_token": {
       "tp": 1,
@@ -116,24 +116,22 @@
     },
     "alphanumeric_identifier": {
       "tp": 1,
-      "fp": 0,
+      "fp": 1,
       "fn": 0,
-      "precision": 1.0,
+      "precision": 0.5,
       "recall": 1.0,
-      "f1": 1.0
+      "f1": 0.6667
+    },
+    "passport_number": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
     }
   },
   "failures": [
-    {
-      "id": "en-email-spaced",
-      "counts": {
-        "email": {
-          "tp": 0,
-          "fp": 0,
-          "fn": 1
-        }
-      }
-    },
     {
       "id": "fr-person",
       "counts": {
@@ -165,47 +163,32 @@
       }
     },
     {
-      "id": "json-password",
+      "id": "fr-labeled-identity-secrets",
       "counts": {
-        "hardcoded_secret": {
+        "person_name": {
           "tp": 0,
           "fp": 0,
           "fn": 1
-        }
-      }
-    },
-    {
-      "id": "openai",
-      "counts": {
-        "openai_api_key": {
+        },
+        "passport_number": {
           "tp": 0,
           "fp": 0,
           "fn": 1
         },
         "hardcoded_secret": {
           "tp": 0,
+          "fp": 0,
+          "fn": 1
+        },
+        "openai_api_key": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1
+        },
+        "alphanumeric_identifier": {
+          "tp": 0,
           "fp": 1,
           "fn": 0
-        }
-      }
-    },
-    {
-      "id": "github",
-      "counts": {
-        "github_token": {
-          "tp": 0,
-          "fp": 0,
-          "fn": 1
-        }
-      }
-    },
-    {
-      "id": "zero-width-email",
-      "counts": {
-        "email": {
-          "tp": 0,
-          "fp": 0,
-          "fn": 1
         }
       }
     }

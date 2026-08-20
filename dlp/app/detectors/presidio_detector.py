@@ -85,6 +85,16 @@ _NLP_EXCLUDED_TERMS = {
     "url",
     "spring boot",
     "l objectif",
+    "fictives",
+    "fichier",
+    "telephone",
+    "numero",
+    "cvv",
+    "identite",
+    "contact",
+    "informations bancaires",
+    "carte bancaire de test",
+    "identifiants et secrets fictifs",
 }
 
 _TECHNICAL_CONTEXT_PATTERNS = (
@@ -149,6 +159,8 @@ def _is_generic_nlp_false_positive(
     normalized_text = _normalize_nlp_text(detected_text)
     if normalized_text in _NLP_EXCLUDED_TERMS:
         return True
+    if _is_field_label(full_text, start, end):
+        return True
     if _is_technical_context_near_span(full_text, start, end):
         return True
     normalized_upper = detected_text.strip().upper()
@@ -158,6 +170,20 @@ def _is_generic_nlp_false_positive(
     if entity_type in {"LOCATION", "ORGANIZATION"} and normalized_lower.startswith(("contactez ", "contacter ", "contact ")):
         return True
     return normalized_lower in _NLP_SINGLE_TOKEN_FALSE_POSITIVES
+
+
+def _is_field_label(text: str, start: int | None, end: int | None) -> bool:
+    """Reject an NLP entity when its line position shows it is a field label.
+
+    This filters `Téléphone :`, `Numéro :`, and `CVV :` without filtering the
+    value after the colon or relying solely on a language-specific word list.
+    """
+    if start is None or end is None or not (0 <= start < end <= len(text)):
+        return False
+    line_end = text.find("\n", end)
+    if line_end < 0:
+        line_end = len(text)
+    return text[end:line_end].lstrip().startswith(":")
 
 
 def _normalize_nlp_text(value: str) -> str:

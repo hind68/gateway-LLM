@@ -97,6 +97,17 @@ def test_distant_code_does_not_suppress_person(monkeypatch):
     assert any(match["type"] == "person_name" for match in detector.detect_with_presidio(text, language="fr"))
 
 
+def test_field_labels_and_document_headings_are_not_nlp_values(monkeypatch):
+    for text, value in [
+        ("Téléphone : 06 12 34 56 78", "Téléphone"),
+        ("Numéro : 4532 7512 3456 7890", "Numéro"),
+        ("CVV : 742", "CVV"),
+        ("DONNÉES SENSIBLES FICTIVES", "FICTIVES"),
+    ]:
+        monkeypatch.setattr(detector, "get_analyzer", lambda value=value: FakeGenericFalsePositiveAnalyzer("PERSON", value))
+        assert detector.detect_with_presidio(text, language="fr") == []
+
+
 def test_generic_nlp_entities_are_filtered_in_technical_content(monkeypatch):
     text = 'curl https://api.example.test -H "Content-Type: application/json" -H "Authorization: Bearer token"'
     monkeypatch.setattr(detector, "get_analyzer", lambda: FakeGenericFalsePositiveAnalyzer("LOCATION", "application"))

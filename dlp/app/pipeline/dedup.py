@@ -2,10 +2,14 @@ def spans_overlap(a: dict, b: dict) -> bool:
     return a["start"] < b["end"] and b["start"] < a["end"]
 
 
-def _quality_key(match: dict) -> tuple[int, int, float, int]:
+_GENERIC_TYPES = {"alphanumeric_identifier", "hardcoded_secret", "api_key"}
+
+
+def _quality_key(match: dict) -> tuple[int, int, int, float, int]:
     length = match["end"] - match["start"]
     specialized = 1 if match.get("pattern_name") or match.get("validated") else 0
     return (
+        0 if match.get("type") in _GENERIC_TYPES else 1,
         specialized,
         1 if match.get("validated") else 0,
         float(match.get("score") or 0),

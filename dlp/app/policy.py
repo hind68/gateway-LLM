@@ -24,6 +24,7 @@ TYPE_SEVERITY = {
     "crypto_wallet": "high",
     "cvv": "high",
     "civil_registry_number": "high",
+    "passport_number": "high",
     "ip_address": "high",
     "alphanumeric_identifier": "medium",
     "email": "medium",

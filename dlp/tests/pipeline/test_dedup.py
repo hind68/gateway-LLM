@@ -53,3 +53,14 @@ def test_dedup_removes_all_overlapping_lower_quality_matches():
     assert result[0]["type"] == "openai_api_key"
     assert result[0]["start"] == 15
     assert result[0]["end"] == 62
+
+
+def test_dedup_prefers_specific_passport_and_key_types():
+    matches = [
+        {"type": "alphanumeric_identifier", "start": 0, "end": 9, "source": "regex", "severity": "medium", "score": 0.72, "pattern_name": "lookalike"},
+        {"type": "passport_number", "start": 0, "end": 9, "source": "regex", "severity": "high", "score": 0.72, "pattern_name": "passport"},
+        {"type": "hardcoded_secret", "start": 20, "end": 50, "source": "regex", "severity": "high", "score": 0.72, "pattern_name": "labeled_secret"},
+        {"type": "openai_api_key", "start": 20, "end": 50, "source": "regex", "severity": "high", "score": 0.72, "pattern_name": "contextual_sk"},
+    ]
+    result = deduplicate_matches(matches)
+    assert [match["type"] for match in result] == ["passport_number", "openai_api_key"]

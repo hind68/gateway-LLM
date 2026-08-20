@@ -32,6 +32,7 @@
     {"id":"ticket-cin-shape","language":"fr","text":"Le ticket AB123456 a été fermé.","expected":[{"type":"alphanumeric_identifier","value":"AB123456"}]},
     {"id":"placeholder","language":"en","text":"DB_PASSWORD=[HARDCODED_SECRET_1]","expected":[]},
     {"id":"zero-width-email","language":"en","text":"Email: user@example.\u200bcom","expected":[{"type":"email","value":"user@example.\u200bcom"}]},
-    {"id":"nbsp-phone","language":"fr","text":"Téléphone 06\u00a012\u00a034\u00a056\u00a078","expected":[{"type":"phone_number","value":"06\u00a012\u00a034\u00a056\u00a078"}]}
+    {"id":"nbsp-phone","language":"fr","text":"Téléphone 06\u00a012\u00a034\u00a056\u00a078","expected":[{"type":"phone_number","value":"06\u00a012\u00a034\u00a056\u00a078"}]},
+    {"id":"fr-labeled-identity-secrets","language":"fr","text":"Nom : Yassine El Mansouri\nPasseport : MA8473921\nMot de passe : AtlasTest!2026\nClé API : sk_test_51AtlasExample9xK72pQ4","expected":[{"type":"person_name","value":"Yassine El Mansouri"},{"type":"passport_number","value":"MA8473921"},{"type":"hardcoded_secret","value":"AtlasTest!2026"},{"type":"openai_api_key","value":"sk_test_51AtlasExample9xK72pQ4"}]}
   ]
 }

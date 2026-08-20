@@ -243,7 +243,7 @@
         {
             "name": "labeled_name_fr",
             "type": "name",
-            "pattern": "(?i:Nom|Pr[e\u00e9]nom|Nom et pr[e\u00e9]nom)\\s*[:\\-]\\s*([A-Z\u00c0-\u00dc][a-z\u00e0-\u00ff]+(?:\\s[A-Z\u00c0-\u00dc][a-z\u00e0-\u00ff]+){0,3})",
+            "pattern": "(?i:Nom|Pr[e\u00e9]nom|Nom et pr[e\u00e9]nom)[ \\t]*[:\\-][ \\t]*([A-Z\u00c0-\u00dc][a-z\u00e0-\u00ff]+(?:[ \\t]+[A-Z\u00c0-\u00dc][a-z\u00e0-\u00ff]+){0,3})",
             "severity": "low",
             "action": "MASK",
             "enabled": true,
@@ -253,7 +253,7 @@
         {
             "name": "labeled_name_en",
             "type": "name",
-            "pattern": "(?i:Name|Full Name|First Name|Last Name)\\s*[:\\-]\\s*([A-Z][a-z]+(?:\\s[A-Z][a-z]+){0,3})",
+            "pattern": "(?i:Name|Full Name|First Name|Last Name)[ \\t]*[:\\-][ \\t]*([A-Z][a-z]+(?:[ \\t]+[A-Z][a-z]+){0,3})",
             "severity": "low",
             "action": "MASK",
             "enabled": true,
@@ -319,6 +319,36 @@
             "enabled": true,
             "validator": null,
             "capture_group": null
+        },
+        {
+            "name": "passport_number_contextual",
+            "type": "passport_number",
+            "pattern": "(?i)(?:\\b(?:passeport|passport)\\b|جواز\\s+السفر)[^A-Za-z0-9\\n]{0,12}([A-Z]{1,2}\\d{6,9})(?![A-Za-z0-9])",
+            "severity": "high",
+            "action": "BLOCK",
+            "enabled": true,
+            "validator": null,
+            "capture_group": 1
+        },
+        {
+            "name": "multilingual_labeled_secret",
+            "type": "hardcoded_secret",
+            "pattern": "(?i)(?:mot\\s+de\\s+passe|clé\\s+api|cle\\s+api|كلمة\\s+المرور|مفتاح\\s+api|motdepasse|secret|lmot\\s+de\\s+passe)\\s*[:=]\\s*[\\'\"]?(?!os\\.getenv)(?!os\\.environ)(?!process\\.env)(?!\\$\\{)([^\\s\\'\",}]{6,128})",
+            "severity": "high",
+            "action": "BLOCK",
+            "enabled": true,
+            "validator": null,
+            "capture_group": 1
+        },
+        {
+            "name": "contextual_sk_key",
+            "type": "openai_api_key",
+            "pattern": "(?i)(?:clé\\s+api|cle\\s+api|api[_ -]?key|مفتاح\\s+api)\\s*[:=]\\s*(sk[_-][A-Za-z0-9_-]{20,})",
+            "severity": "high",
+            "action": "BLOCK",
+            "enabled": true,
+            "validator": null,
+            "capture_group": 1
         }
     ]
 }
