@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState, useContext } from 'react'
+import { flushSync } from 'react-dom'
 import { AuthContext } from './AuthProvider'
 import useConversations from './features/conversations/hooks/useConversations'
 import AppLayout from './features/layout/AppLayout'
@@ -16,7 +17,29 @@ function App() {
   const notificationIdRef = useRef(0)
   const [showTabs, setShowTabs] = useState(false)
   const isAdmin = hasAdminRole(token)
-  const [showAdminDashboard, setShowAdminDashboard] = useState(false)
+  const [showAdminDashboard, setShowAdminDashboardState] = useState(false)
+
+  const setShowAdminDashboard = useCallback((nextValue) => {
+    const currentValue = showAdminDashboard
+    const resolvedValue = typeof nextValue === 'function' ? nextValue(currentValue) : nextValue
+    const updateView = () => {
+      flushSync(() => {
+        setShowAdminDashboardState(resolvedValue)
+      })
+    }
+
+    if (!document.startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      updateView()
+      return
+    }
+
+    document.documentElement.dataset.workspaceTransition = resolvedValue ? 'to-admin' : 'to-chat'
+    const transition = document.startViewTransition(updateView)
+    const clearTransitionDirection = () => {
+      delete document.documentElement.dataset.workspaceTransition
+    }
+    transition.finished.then(clearTransitionDirection, clearTransitionDirection)
+  }, [showAdminDashboard])
 
   const showError = useCallback((message) => {
     notificationIdRef.current += 1

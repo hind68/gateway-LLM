@@ -2,8 +2,20 @@ import { useEffect, useId, useRef, useState } from 'react'
 
 import { CheckIcon, CopyIcon } from '../../components/common/icons'
 import { ADMIN_NAV_ITEMS, formatKicker } from './AdminUtils'
+import { createPortal } from 'react-dom'
+
+const ADMIN_ICON_PNG = {
+  users: '/assets/admin-users.png',
+  spark: '/assets/admin-models.png',
+  shield: '/assets/admin-security.png',
+  key: '/assets/admin-roles.png',
+  activity: '/assets/admin-audit-log-cropped.png',
+}
 
 export function Icon({ name, size = 18, strokeWidth = 1.8 }) {
+  const png = ADMIN_ICON_PNG[name]
+  if (png) return <img className="admin-png-icon" src={png} alt="" width={size} height={size} aria-hidden="true" />
+
   const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true }
   const paths = {
     grid: <><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></>,
@@ -27,26 +39,9 @@ export function Icon({ name, size = 18, strokeWidth = 1.8 }) {
   return <svg {...common}>{paths[name] || paths.grid}</svg>
 }
 
-export function AdminShell({ activeSection, onSectionChange, onBackToChat, keycloak, children }) {
-  const [isExiting, setIsExiting] = useState(false)
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
-  const exitTimerRef = useRef(null)
-
-  useEffect(() => () => window.clearTimeout(exitTimerRef.current), [])
-
-  const closeAdmin = () => {
-    if (isExiting) return
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      onBackToChat?.()
-      return
-    }
-    setIsExiting(true)
-    exitTimerRef.current = window.setTimeout(() => onBackToChat?.(), 260)
-  }
-
+export function AdminShell({ children }) {
   return (
-    <div className={`admin-shell ${isSidebarOpen ? 'admin-sidebar-open' : 'admin-sidebar-closed'} ${isExiting ? 'is-exiting' : ''}`}>
-      <AdminSidebar activeSection={activeSection} onSectionChange={onSectionChange} onBackToChat={closeAdmin} keycloak={keycloak} isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
+    <div className="admin-shell admin-shell-embedded">
       <main className="admin-main-panel">{children}</main>
     </div>
   )
@@ -128,9 +123,17 @@ export function AdminPageHeader({ eyebrow, title, description, actions }) {
 
 export function AdminToolbar({ children }) { return <div className="admin-toolbar">{children}</div> }
 
+const STAT_ICON_PNG = {
+  users: '/assets/admin-users.png',
+  spark: '/assets/admin-models.png',
+  shield: '/assets/admin-security.png',
+  key: '/assets/admin-roles.png',
+}
+
 export function StatCard({ icon, label, value, context, tone = 'blue', onClick }) {
   const Tag = onClick ? 'button' : 'div'
-  return <Tag type={onClick ? 'button' : undefined} className={`admin-stat-card ${tone}`} onClick={onClick}><span className="admin-stat-icon"><Icon name={icon} size={17} /></span><span className="admin-stat-copy"><span>{label}</span><strong>{value}</strong><small>{context}</small></span></Tag>
+  const iconPng = STAT_ICON_PNG[icon]
+  return <Tag type={onClick ? 'button' : undefined} className={`admin-stat-card ${tone}`} onClick={onClick}><span className="admin-stat-icon">{iconPng ? <img src={iconPng} alt="" /> : <Icon name={icon} size={17} />}</span><span className="admin-stat-copy"><span>{label}</span><strong>{value}</strong><small>{context}</small></span></Tag>
 }
 
 export function StatusBadge({ status, label }) {
@@ -148,13 +151,93 @@ export function Skeleton({ rows = 3 }) { return <div className="admin-skeleton-l
 export function Modal({ title, description, children, onClose, size = 'medium' }) {
   const titleId = useId()
   const closeRef = useRef(null)
+  const backdropRef = useRef(null)
+
   useEffect(() => {
     closeRef.current?.focus()
-    const onKeyDown = (event) => { if (event.key === 'Escape') onClose() }
+
+    // Lock the page behind the modal.
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    // Because the modal is portalled directly into <body>, make every other
+    // top-level app node inert while the modal is open. This prevents mouse,
+    // touch and keyboard interaction with the sidebar/content behind it.
+    const backdrop = backdropRef.current
+    const backgroundNodes = Array.from(document.body.children).filter(
+      (node) => node !== backdrop && !node.contains(backdrop),
+    )
+
+    const previousBackgroundState = backgroundNodes.map((node) => ({
+      node,
+      inert: node.inert,
+      ariaHidden: node.getAttribute('aria-hidden'),
+    }))
+
+    backgroundNodes.forEach((node) => {
+      node.inert = true
+      node.setAttribute('aria-hidden', 'true')
+    })
+
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') onClose()
+    }
+
     document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
+
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      document.body.style.overflow = previousOverflow
+
+      previousBackgroundState.forEach(({ node, inert, ariaHidden }) => {
+        node.inert = inert
+
+        if (ariaHidden === null) {
+          node.removeAttribute('aria-hidden')
+        } else {
+          node.setAttribute('aria-hidden', ariaHidden)
+        }
+      })
+    }
   }, [onClose])
-  return <div className="admin-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}><section className={`admin-modal ${size}`} role="dialog" aria-modal="true" aria-labelledby={titleId}><div className="admin-modal-header"><div><h2 id={titleId}>{title}</h2>{description && <p>{description}</p>}</div><button ref={closeRef} type="button" className="admin-icon-button" onClick={onClose} aria-label="Fermer"><Icon name="close" size={18} /></button></div>{children}</section></div>
+
+  return createPortal(
+    <div
+      ref={backdropRef}
+      className="admin-modal-backdrop"
+      role="presentation"
+      onPointerDown={(event) => {
+        if (event.target === event.currentTarget) onClose()
+      }}
+    >
+      <section
+        className={`admin-modal ${size}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+      >
+        <div className="admin-modal-header">
+          <div>
+            <h2 id={titleId}>{title}</h2>
+            {description && <p>{description}</p>}
+          </div>
+
+          <button
+            ref={closeRef}
+            type="button"
+            className="admin-icon-button"
+            onClick={onClose}
+            aria-label="Fermer"
+          >
+            <Icon name="close" size={18} />
+          </button>
+        </div>
+
+        {children}
+      </section>
+    </div>,
+    document.body
+  )
 }
 
 export function ConfirmDialog({ title, message, confirmLabel = 'Confirmer', onCancel, onConfirm, busy = false }) {

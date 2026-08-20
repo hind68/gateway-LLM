@@ -6,7 +6,7 @@ model_list:
 
   - model_name: secure-groq
     litellm_params:
-      model: groq/llama-3.1-8b-instant
+      model: groq/openai/gpt-oss-120b
       api_key: os.environ/GROQ_API_KEY
 
   - model_name: secure-gemini

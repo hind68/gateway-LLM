@@ -859,7 +859,7 @@
 
 .message.assistant.dlp-blocked-response .dlp-alert.is-compact {
   width: 100%;
-  max-width: 100%;
+  max-width: 560px;
 }
 
 .message.assistant.dlp-blocked-response .dlp-alert strong {

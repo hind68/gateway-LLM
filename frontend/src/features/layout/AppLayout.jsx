@@ -31,6 +31,7 @@ export default function AppLayout({
   const [inspectedDocument, setInspectedDocument] = useState(null)
   const [isInspectorClosing, setIsInspectorClosing] = useState(false)
   const [inspectorWidth, setInspectorWidth] = useState(INSPECTOR_DEFAULT_WIDTH)
+  const [adminSection, setAdminSection] = useState(() => window.localStorage.getItem('synapse-admin-section') || 'overview')
   const dragDepthRef = useRef(0)
   const resizeFrameRef = useRef(0)
   const closeInspectorTimerRef = useRef(0)
@@ -133,15 +134,12 @@ export default function AppLayout({
     window.addEventListener('pointercancel', handlePointerUp)
   }, [inspectorWidth])
 
-  if (admin?.showAdminDashboard) {
-    return <><AdminDashboard onError={admin.onError} onNotice={admin.onNotice} onModelsChanged={admin.onModelsChanged} onBackToChat={() => admin.setShowAdminDashboard(false)} /><Toast notifications={feedback.notifications} onClose={feedback.onDismissNotification} /></>
-  }
 
   return (
     <div className={`app-shell ${layout.isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       <Sidebar
         activeConversation={activeConversation}
-        admin={admin} // <-- Passed admin to Sidebar
+        admin={admin ? { ...admin, adminSection, setAdminSection } : admin}
         archiveConversation={actions.archiveConversation}
         closeSidebarPanels={layout.closeSidebarPanels}
         closeTransientMenus={layout.closeTransientMenus}
@@ -224,25 +222,8 @@ export default function AppLayout({
             </div>
           </div>
         )}
-        <header className="chat-header">
-          {admin?.showAdminDashboard ? (
-            <>
-              <div className="admin-header-title">
-                <span className="admin-header-eyebrow">Synapse</span>
-                <h1>Administration</h1>
-              </div>
-
-              <div className="header-controls">
-                <button
-                  type="button"
-                  className="admin-back-button"
-                  onClick={() => admin.setShowAdminDashboard(false)}
-                >
-                  ← Retour au chat
-                </button>
-              </div>
-            </>
-          ) : (
+        {!admin?.showAdminDashboard && (
+          <header className="chat-header">
             <div className="header-controls">
               <ModelSelector
                 activeModel={models.activeModel}
@@ -272,14 +253,17 @@ export default function AppLayout({
                 />
               )}
             </div>
-          )}
-        </header>
+          </header>
+        )}
 
         {admin?.showAdminDashboard ? (
           <AdminDashboard
+            activeSection={adminSection}
+            onSectionChange={setAdminSection}
             onError={admin.onError}
             onNotice={admin.onNotice}
             onModelsChanged={admin.onModelsChanged}
+            onBackToChat={() => admin.setShowAdminDashboard(false)}
           />
         ) : (
           <>

@@ -33,12 +33,39 @@ describe('ChatMessage', () => {
     expect(html).toContain('Une donnée sensible de type CIN a été détectée.')
     expect(html).toContain('Copier mon prompt')
     expect(html).toContain('Copier le message de sécurité')
-    expect(html).toContain('Voir la version sécurisée')
+    expect(html).not.toContain('Voir la version sécurisée')
+    expect(html).not.toContain('Masquer et renvoyer')
     expect(html).toContain('message user')
     expect(html).toContain('message assistant dlp-blocked-response')
     expect(html).toContain('assistant-header')
     expect(html).not.toContain('disabled')
     expect(html).not.toContain('typing-indicator')
+  })
+
+  it('offers masked resend for medium severity blocks', () => {
+    const html = renderToStaticMarkup(
+      <ChatMessage
+        copiedKey=""
+        fallbackModelName="GPT"
+        message={{
+          id: 44,
+          role: 'USER',
+          status: 'DLP_BLOCKED',
+          content: 'Contact admin@example.com',
+          dlpOriginalText: 'Contact admin@example.com',
+          dlpMaskedText: 'Contact [EMAIL_1]',
+          dlpHighestSeverity: 'MEDIUM',
+          dlpDetectedTypes: ['email'],
+          dlpMatches: [{ type: 'email', start: 8, end: 25, placeholder: '[EMAIL_1]' }],
+        }}
+        onCopy={vi.fn()}
+        onSendSecureMessage={vi.fn()}
+        setCopiedKey={vi.fn()}
+      />,
+    )
+
+    expect(html).toContain('Voir la version sécurisée')
+    expect(html).toContain('Masquer et renvoyer')
   })
 
   it('shows copied confirmation for the DLP alert copy button', () => {

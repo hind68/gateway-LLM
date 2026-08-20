@@ -93,6 +93,15 @@ export default function useChatController({
     }
   }, [actions, chat, composerBeforeRectRef, composerRef, feedback, shouldAutoScrollRef, status.isGenerating])
 
+  const sendSecureMessage = useCallback((maskedText) => {
+    const prompt = String(maskedText || '').trim()
+    if (!prompt || status.isGenerating || !state.activeConversation) return
+    feedback.clearChatError()
+    chat.setIsLastBlockVisible(true)
+    shouldAutoScrollRef.current = true
+    void chat.streamMessage(state.activeConversation, prompt)
+  }, [chat, feedback, shouldAutoScrollRef, state.activeConversation, status.isGenerating])
+
   const archiveConversation = useCallback(async (conversation = state.activeConversation) => {
     const result = await actions.archiveConversationRecord(conversation)
     if (result.wasActive) {
@@ -150,6 +159,7 @@ export default function useChatController({
     openNewConversationWithModel,
     selectModel,
     sendMessage,
+    sendSecureMessage,
   }
 }
 

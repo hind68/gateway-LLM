@@ -10,7 +10,7 @@ import { detectTextDirection } from '../utils/markdown'
 
 const COLLAPSED_ATTACHMENT_COUNT = 3
 
-function ChatMessage({ copiedKey, fallbackModelAlias, fallbackModelName, message, onCopy, onInspectDocument, setCopiedKey }) {
+function ChatMessage({ copiedKey, fallbackModelAlias, fallbackModelName, message, onCopy, onInspectDocument, onSendSecureMessage, setCopiedKey }) {
   const isUser = message.role === 'USER'
   const isDlpBlocked = message.status === 'DLP_BLOCKED'
   const effectiveModelAlias = message.modelAlias || fallbackModelAlias || fallbackModelName
@@ -72,6 +72,7 @@ function ChatMessage({ copiedKey, fallbackModelAlias, fallbackModelName, message
               onCopyAlert={(text) => copyResponse(alertCopyKey, text)}
               onCopySafe={(text) => copyResponse(safeCopyKey, text)}
               onInspectDocument={onInspectDocument}
+              onSendSecureMessage={onSendSecureMessage}
             />
           </div>
         </article>
@@ -91,6 +92,7 @@ function ChatMessage({ copiedKey, fallbackModelAlias, fallbackModelName, message
             onCopyAlert={(text) => copyResponse(alertCopyKey, text)}
             onCopySafe={(text) => copyResponse(safeCopyKey, text)}
             onInspectDocument={onInspectDocument}
+            onSendSecureMessage={onSendSecureMessage}
           />
         </div>
       </article>
@@ -157,7 +159,7 @@ function ChatMessage({ copiedKey, fallbackModelAlias, fallbackModelName, message
   )
 }
 
-function DlpBlockedMessage({ alertCopied, copied, message, onCopyAlert, onCopySafe, onInspectDocument }) {
+function DlpBlockedMessage({ alertCopied, copied, message, onCopyAlert, onCopySafe, onInspectDocument, onSendSecureMessage }) {
   const [showSafe, setShowSafe] = useState(false)
   const [showOriginal, setShowOriginal] = useState(false)
   const [showAllAttachments, setShowAllAttachments] = useState(false)
@@ -173,6 +175,9 @@ function DlpBlockedMessage({ alertCopied, copied, message, onCopyAlert, onCopySa
     ? blockedAttachments
     : blockedAttachments.slice(0, COLLAPSED_ATTACHMENT_COUNT)
   const safeText = message.dlpMaskedText || ''
+  const severity = String(message.dlpHighestSeverity || '').toLowerCase()
+  const isMediumSeverity = severity === 'medium'
+  const canResendMasked = isMediumSeverity && Boolean(safeText.trim()) && !hasDlpFiles
   const originalText = message.dlpOriginalText || ''
   const hasOriginal = Boolean(originalText)
   const hasOpenDetails = showSafe || showOriginal
@@ -238,14 +243,21 @@ function DlpBlockedMessage({ alertCopied, copied, message, onCopyAlert, onCopySa
         </section>
       ) : (
         <div className="dlp-alert-tabs">
-          <button
-            type="button"
-            aria-controls={`dlp-safe-${message.id}`}
-            aria-expanded={showSafe}
-            onClick={() => setShowSafe((current) => !current)}
-          >
-            {showSafe ? 'Masquer la version sécurisée' : 'Voir la version sécurisée'}
-          </button>
+          {isMediumSeverity && (
+            <button
+              type="button"
+              aria-controls={`dlp-safe-${message.id}`}
+              aria-expanded={showSafe}
+              onClick={() => setShowSafe((current) => !current)}
+            >
+              {showSafe ? 'Masquer la version sécurisée' : 'Voir la version sécurisée'}
+            </button>
+          )}
+          {canResendMasked && (
+            <button type="button" onClick={() => onSendSecureMessage?.(safeText)}>
+              Masquer et renvoyer
+            </button>
+          )}
           <button
             type="button"
             aria-controls={`dlp-original-${message.id}`}
@@ -258,7 +270,7 @@ function DlpBlockedMessage({ alertCopied, copied, message, onCopyAlert, onCopySa
           </button>
         </div>
       )}
-      {!hasDlpFiles && showSafe && (
+      {!hasDlpFiles && isMediumSeverity && showSafe && (
         <section className="dlp-detail-panel" id={`dlp-safe-${message.id}`}>
           <div className="dlp-detail-heading">
             <span>Version sécurisée</span>
@@ -470,6 +482,7 @@ function areChatMessagesEqual(previous, next) {
     previous.fallbackModelName === next.fallbackModelName &&
     previous.onCopy === next.onCopy &&
     previous.onInspectDocument === next.onInspectDocument &&
+    previous.onSendSecureMessage === next.onSendSecureMessage &&
     previous.setCopiedKey === next.setCopiedKey
   )
 

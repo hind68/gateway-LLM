@@ -15,6 +15,7 @@ export default function ChatThread({
   messagesRef,
   onCopy,
   onInspectDocument,
+  onSendSecureMessage,
   onMessagesScroll,
   setCopiedKey,
   welcomeComposer,
@@ -45,6 +46,7 @@ export default function ChatThread({
             message={item}
             onCopy={onCopy}
             onInspectDocument={onInspectDocument}
+            onSendSecureMessage={onSendSecureMessage}
             setCopiedKey={setCopiedKey}
           />
         ))}

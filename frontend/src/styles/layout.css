@@ -27,6 +27,57 @@
   grid-template-rows: auto minmax(0, 1fr) auto;
   overflow: hidden;
   transition: width 0.3s ease;
+  view-transition-name: workspace-content;
+}
+
+/* Smoothly morph the chatbot workspace into administration (and back). */
+::view-transition-group(workspace-content) {
+  animation-duration: 460ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html[data-workspace-transition='to-admin']::view-transition-old(workspace-content) {
+  animation: workspace-view-out-left 180ms ease-in both;
+}
+
+html[data-workspace-transition='to-admin']::view-transition-new(workspace-content) {
+  animation: workspace-view-in-right 300ms 150ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+html[data-workspace-transition='to-chat']::view-transition-old(workspace-content) {
+  animation: workspace-view-out-right 180ms ease-in both;
+}
+
+html[data-workspace-transition='to-chat']::view-transition-new(workspace-content) {
+  animation: workspace-view-in-left 300ms 150ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes workspace-view-out-left {
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to { opacity: 0; transform: translateX(-24px) scale(0.995); }
+}
+
+@keyframes workspace-view-in-right {
+  from { opacity: 0; transform: translateX(28px) scale(0.995); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes workspace-view-out-right {
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to { opacity: 0; transform: translateX(24px) scale(0.995); }
+}
+
+@keyframes workspace-view-in-left {
+  from { opacity: 0; transform: translateX(-28px) scale(0.995); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(workspace-content),
+  ::view-transition-old(workspace-content),
+  ::view-transition-new(workspace-content) {
+    animation: none;
+  }
 }
 
 .drag-drop-overlay {
